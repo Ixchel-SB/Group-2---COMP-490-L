@@ -6,7 +6,7 @@ public class MainMenu : MonoBehaviour
     public void StartNewGame()
     {
         Debug.Log("Starting new game...");
-        SceneManager.LoadScene("SampleScene");
+        SceneManager.LoadScene("StoryTextScene"); //SampleScene
     }
 
     public void QuitGame()
