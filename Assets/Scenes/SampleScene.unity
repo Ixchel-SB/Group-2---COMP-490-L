@@ -15042,6 +15042,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1037985367}
   - component: {fileID: 1037985368}
+  - component: {fileID: 1037985369}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -15077,6 +15078,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseManager
   playerInput: {fileID: 401935498}
+--- !u!114 &1037985369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1037985365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19a76cdb469839642808d2399335ef97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Inventory
+  itemDatabase:
+  - {fileID: 11400000, guid: 821c02ef96044424c9b50d8933f4eaba, type: 2}
+  ownedItemIDs: []
 --- !u!1001 &1041363296
 PrefabInstance:
   m_ObjectHideFlags: 0
