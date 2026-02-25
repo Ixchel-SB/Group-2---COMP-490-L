@@ -11116,7 +11116,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1037985369}
+      - m_Target: {fileID: 1037985370}
         m_TargetAssemblyTypeName: PauseMenuQuit, Assembly-CSharp
         m_MethodName: QuitToMainMenu
         m_Mode: 1
@@ -15721,9 +15721,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1037985367}
   - component: {fileID: 1037985368}
-  - component: {fileID: 1037985369}
+  - component: {fileID: 1037985370}
   m_Layer: 0
-  m_Name: GameManager
+  m_Name: PauseManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -15761,7 +15761,7 @@ MonoBehaviour:
   playerHead: {fileID: 401935499}
   playerController: {fileID: 401935498}
   distanceInFront: 2
---- !u!114 &1037985369
+--- !u!114 &1037985370
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -15773,6 +15773,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0f6420d32fe44b4a9fa9f3d1c489e8c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenuQuit
+  pauseManager: {fileID: 1037985368}
 --- !u!1001 &1041363296
 PrefabInstance:
   m_ObjectHideFlags: 0

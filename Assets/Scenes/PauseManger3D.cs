@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class PauseManager3D : MonoBehaviour
 {
@@ -12,14 +13,37 @@ public class PauseManager3D : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("PauseManager3D Start on scene: " + SceneManager.GetActiveScene().name);
         pauseMenu3D.SetActive(false);
+    }
+
+    void OnDestroy()
+    {
+        Debug.Log("PauseManager3D being destroyed");
+        Time.timeScale = 1f;
     }
 
     void Update()
     {
+        // Only process input if in game scene
+        if (SceneManager.GetActiveScene().name != "SampleScene" && 
+            SceneManager.GetActiveScene().name != "StoryTextScene")
+        {
+            return;
+        }
+
         // Press P to pause
         if (Keyboard.current.pKey.wasPressedThisFrame && !isPaused)
+        {
+            Debug.Log("P key pressed - pausing");
             Pause();
+        }
+        // Press P again to resume
+        else if (Keyboard.current.pKey.wasPressedThisFrame && isPaused)
+        {
+            Debug.Log("P key pressed - resuming");
+            Resume();
+        }
     }
 
     void Pause()
@@ -34,12 +58,13 @@ public class PauseManager3D : MonoBehaviour
 
         // Rotate menu to face the player
         pauseMenu3D.transform.LookAt(playerHead);
-        pauseMenu3D.transform.Rotate(0, 180f, 0); // flip because LookAt faces back
+        pauseMenu3D.transform.Rotate(0, 180f, 0);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         isPaused = true;
+        Debug.Log("Game paused - time scale: " + Time.timeScale);
     }
 
     public void Resume()
@@ -53,5 +78,7 @@ public class PauseManager3D : MonoBehaviour
         Cursor.visible = false;
 
         isPaused = false;
+        Debug.Log("Game resumed - time scale: " + Time.timeScale);
     }
 }
+
