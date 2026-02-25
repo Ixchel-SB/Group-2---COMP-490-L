@@ -15,4 +15,16 @@ public class WorldItem : MonoBehaviour
             gameObject.SetActive(false);
         }
     }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("Player") && Input.GetKeyDown(KeyCode.E))
+        {
+            Inventory inv = other.GetComponent<Inventory>();
+            if (inv != null)
+            {
+                Pickup(inv);
+            }
+        }
+    }
 }
