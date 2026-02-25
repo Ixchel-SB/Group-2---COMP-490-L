@@ -1,4 +1,0 @@
-repository "The Vow/The Vow@20067490687114@cloud"
-  path "/"
-    br "/main"
-    co "/main"
