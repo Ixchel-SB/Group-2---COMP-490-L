@@ -20,6 +20,7 @@ namespace InventoryFramework
 
         public void OnInventory()
         {
+            if (Time.timeScale == 0f) return;
             isOpen = !isOpen;
 
             if (invPanel != null)
@@ -28,5 +29,15 @@ namespace InventoryFramework
             Cursor.lockState = isOpen ? CursorLockMode.None : CursorLockMode.Locked;
             Cursor.visible = isOpen;
         }
+
+        public void CloseInventory()
+        {
+            isOpen = false;
+
+            if (invPanel != null)
+                invPanel.SetActive(false);
+            
+        }
+
     }
 }

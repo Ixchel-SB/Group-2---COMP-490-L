@@ -8,6 +8,7 @@ public class PauseManager3D : MonoBehaviour
     public Transform playerHead;          // drag Main Camera here
     public MonoBehaviour playerController; // drag ThirdPersonController or PlayerArmature here
     public float distanceInFront = 2f;   // distance of menu from player
+    public InventoryFramework.InventoryTester inventoryToggle; //drag PlayerArmature (has Inventory Tester) 
 
     private bool isPaused = false;
 
@@ -48,6 +49,9 @@ public class PauseManager3D : MonoBehaviour
 
     void Pause()
     {
+        if (inventoryToggle != null)
+        inventoryToggle.CloseInventory();
+
         Time.timeScale = 0f;
         playerController.enabled = false;
 

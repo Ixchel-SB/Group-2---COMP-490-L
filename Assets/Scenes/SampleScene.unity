@@ -53026,6 +53026,7 @@ MonoBehaviour:
   playerHead: {fileID: 401935499}
   playerController: {fileID: 401935498}
   distanceInFront: 2
+  inventoryToggle: {fileID: 438982502}
 --- !u!114 &1037985370
 MonoBehaviour:
   m_ObjectHideFlags: 0
