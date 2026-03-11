@@ -7,6 +7,7 @@ public class NPCInteraction : MonoBehaviour
     public GameObject interactionPrompt; // "Press F to talk" UI
     
     private bool playerInRange = false;
+    private bool dialogueActive = false;
     
     void Start()
     {
@@ -16,7 +17,8 @@ public class NPCInteraction : MonoBehaviour
     
     void Update()
     {
-        if (playerInRange && Input.GetKeyDown(KeyCode.F))
+        // Only allow starting dialogue if not already in dialogue
+        if (playerInRange && !dialogueActive && Input.GetKeyDown(KeyCode.F))
         {
             Interact();
         }
@@ -24,7 +26,8 @@ public class NPCInteraction : MonoBehaviour
     
     void Interact()
     {
-        Debug.Log("Talking to " + npcName);
+        Debug.Log("Starting dialogue with " + npcName);
+        dialogueActive = true;
         
         if (dialogueSystem != null)
         {
@@ -35,12 +38,19 @@ public class NPCInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
     }
     
+    // This will be called by DialogueSystem when dialogue ends
+    public void OnDialogueEnd()
+    {
+        dialogueActive = false;
+    }
+    
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
             playerInRange = true;
-            if (interactionPrompt != null)
+            // Only show prompt if not in dialogue
+            if (!dialogueActive && interactionPrompt != null)
                 interactionPrompt.SetActive(true);
         }
     }

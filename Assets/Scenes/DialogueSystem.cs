@@ -22,16 +22,50 @@ public class DialogueSystem : MonoBehaviour
     public List<DialogueLine> dialogueLines;
     public float typingSpeed = 0.05f;
     
+    [Header("Camera Settings")]
+    public Camera mainCamera;
+    public Transform dialogueCameraPosition; // Where camera moves during dialogue
+    public MonoBehaviour playerFollowCamera; // The camera follow script to disable
+    
     private int currentLine = 0;
     private bool isDialogueActive = false;
     private bool isTyping = false;
     private Coroutine typingCoroutine;
+    
+    // Player references
+    private GameObject player;
+    private MonoBehaviour playerController;
+    private Vector3 originalCameraPos;
+    private Quaternion originalCameraRot;
     
     void Start()
     {
         dialoguePanel.SetActive(false);
         if (continueText != null)
             continueText.text = "Press F to continue";
+        
+        // Find the player
+        player = GameObject.FindGameObjectWithTag("Player");
+        
+        // Find ANY movement script on the player
+        if (player != null)
+        {
+            // Check common controller types
+            playerController = player.GetComponent<MonoBehaviour>();
+            
+            // If not on root, check children
+            if (playerController == null)
+            {
+                // Look for PlayerArmature child
+                Transform playerArmature = player.transform.Find("PlayerArmature");
+                if (playerArmature != null)
+                {
+                    playerController = playerArmature.GetComponent<MonoBehaviour>();
+                }
+            }
+            
+            Debug.Log("Player controller found: " + (playerController != null ? playerController.GetType().Name : "None"));
+        }
     }
     
     void Update()
@@ -48,8 +82,30 @@ public class DialogueSystem : MonoBehaviour
         isDialogueActive = true;
         dialoguePanel.SetActive(true);
         
-        // Freeze player movement (optional)
-        // FindObjectOfType<PlayerController>().enabled = false;
+        // Freeze player movement
+        if (playerController != null)
+        {
+            playerController.enabled = false;
+            Debug.Log("Player controller disabled");
+        }
+        
+        // Disable follow camera
+        if (playerFollowCamera != null)
+        {
+            playerFollowCamera.enabled = false;
+            Debug.Log("Follow camera disabled");
+        }
+        
+        // Store camera position and move to dialogue view
+        if (mainCamera != null && dialogueCameraPosition != null)
+        {
+            originalCameraPos = mainCamera.transform.position;
+            originalCameraRot = mainCamera.transform.rotation;
+            
+            mainCamera.transform.position = dialogueCameraPosition.position;
+            mainCamera.transform.rotation = dialogueCameraPosition.rotation;
+            Debug.Log("Camera moved to dialogue position");
+        }
         
         DisplayLine();
     }
@@ -96,7 +152,29 @@ public class DialogueSystem : MonoBehaviour
         dialoguePanel.SetActive(false);
         
         // Unfreeze player movement
-        // FindObjectOfType<PlayerController>().enabled = true;
+        if (playerController != null)
+        {
+            playerController.enabled = true;
+            Debug.Log("Player controller enabled");
+        }
+        
+        // Re-enable follow camera
+        if (playerFollowCamera != null)
+        {
+            playerFollowCamera.enabled = true;
+            Debug.Log("Follow camera enabled");
+        }
+        
+        // Restore camera position
+        if (mainCamera != null)
+        {
+            mainCamera.transform.position = originalCameraPos;
+            mainCamera.transform.rotation = originalCameraRot;
+            Debug.Log("Camera restored");
+        }
+        
+        // Notify the NPC that dialogue ended
+        FindObjectOfType<NPCInteraction>()?.OnDialogueEnd();
         
         // Optional: Trigger map give event
         Debug.Log("Dialogue ended - map should be given here");
