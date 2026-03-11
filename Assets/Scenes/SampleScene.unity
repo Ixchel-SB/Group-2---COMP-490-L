@@ -94234,6 +94234,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b5dbb80b9212691419fbe050148d3ad2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1746192714}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b5dbb80b9212691419fbe050148d3ad2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1746192716}
   m_SourcePrefab: {fileID: 100100000, guid: b5dbb80b9212691419fbe050148d3ad2, type: 3}
 --- !u!4 &1746192711 stripped
 Transform:
@@ -94276,6 +94279,28 @@ MonoBehaviour:
   npcName: Sister Mary
   dialogueSystem: {fileID: 1592677500}
   interactionPrompt: {fileID: 1017298820}
+--- !u!64 &1746192716
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1269646797}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -6734620852318575487, guid: b5dbb80b9212691419fbe050148d3ad2, type: 3}
 --- !u!1001 &1749421192
 PrefabInstance:
   m_ObjectHideFlags: 0
