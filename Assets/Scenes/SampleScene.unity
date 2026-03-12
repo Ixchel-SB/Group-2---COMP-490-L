@@ -68188,8 +68188,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 21
-  m_fontSizeBase: 21
+  m_fontSize: 20
+  m_fontSizeBase: 20
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -84838,24 +84838,35 @@ MonoBehaviour:
     line: Good morning, Meztly. It's so nice to see you again. I'm glad you're going
       to be attending school with us.
   - speakerName: Sister Mary
-    line: Welcome t St. Academy. We expect you to know that there are rules here
-      you must follow, and if you don't, there will be severe consequences.
+    line: I'm sure your sister would be very happy...
   - speakerName: Sister Mary
-    line: 'Rule number 1: There is a schedule and curfew you must follow at all times.
-      No exceptions.'
+    line: Now- Welcome to Colegio Golgota. We expect you to know that there are rules
+      here you must follow, and if you don't, there will be severe consequences.
   - speakerName: Sister Mary
-    line: 'Rule number 3: The old cemetery is closed permanently. You are to stay
-      away.'
+    line: Rule number 1! There is a schedule and curfew you must follow at all times.
+      NO exceptions.
   - speakerName: Sister Mary
-    line: 'Rule number 4: You do not question authority.'
+    line: Rule number 2 you must be careful with who you talk to outside of school
+      hours. Considering YOU will be staying with us in the dorm, we are responsible
+      for your safery.
   - speakerName: Sister Mary
-    line: "Here is a map of the town. It shows the whole area, including the dorms,
-      classrooms, and the old cemetery \u2014 though remember, you must stay away
-      from there."
-  typingSpeed: 0.05
+    line: Now reframe from going to the old cemetery! It's closed for the time being.
+      The path is being blocked by a fallen tree. But there is still no reason for
+      you to be there I'm sure.
+  - speakerName: Sister Mary
+    line: Considering the only other way there is through *Name*'s farm. STILL!-
+      you better not get in troble!
+  - speakerName: Sister Mary
+    line: NOW! Get GOING! You need to go to the dorm and prepare for tomorrows class.
+  - speakerName: Sister Mary
+    line: Here is a map of the town. Don't get lost, I don't want to go out and look
+      for you. It shows the whole area, including the dorms and the school area.
+  typingSpeed: 0.01
   mainCamera: {fileID: 1188701962}
   dialogueCameraPosition: {fileID: 2056701269}
   playerFollowCamera: {fileID: 1958623273}
+  blackScreenImage: {fileID: 0}
+  transitionDuration: 0.3
 --- !u!4 &1592677501
 Transform:
   m_ObjectHideFlags: 0
