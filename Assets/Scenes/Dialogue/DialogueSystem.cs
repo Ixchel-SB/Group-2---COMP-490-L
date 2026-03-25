@@ -17,28 +17,28 @@ public class DialogueSystem : MonoBehaviour
     public GameObject dialoguePanel;
     public TextMeshProUGUI speakerText;
     public TextMeshProUGUI dialogueText;
-    public TextMeshProUGUI continueText; //"Press F to continue"
+    public TextMeshProUGUI continueText;
     
     public List<DialogueLine> dialogueLines;
-    public float typingSpeed = 0.01f; //Changed typing speed!
+    public float typingSpeed = 0.01f;
     
     [Header("Camera Settings")]
     public Camera mainCamera;
-    public Transform dialogueCameraPosition; //Where camera moves during dialogue
-    public MonoBehaviour playerFollowCamera; //The camera follow script to disable
+    public Transform dialogueCameraPosition;
+    public MonoBehaviour playerFollowCamera;
     
     [Header("Transition Settings")]
-    public Image blackScreenImage; //Drag a full-screen black UI Image here
-    public float transitionDuration = 0.10f; //How long the black flash lasts
+    public GameObject blackScreenPanel;
+    public float fadeDuration = 0.5f;
     
     private int currentLine = 0;
     private bool isDialogueActive = false;
     private bool isTyping = false;
     private Coroutine typingCoroutine;
     
-    //Player references
     private GameObject player;
     private MonoBehaviour playerController;
+    private GameObject playerModel; // Reference to the player's visible model
     private Vector3 originalCameraPos;
     private Quaternion originalCameraRot;
     
@@ -51,21 +51,44 @@ public class DialogueSystem : MonoBehaviour
             continueText.gameObject.SetActive(false);
         }
         
-        // Make sure black screen is invisible at start
-        if (blackScreenImage != null)
+        // Initialize black screen panel
+        if (blackScreenPanel != null)
         {
-            Color c = blackScreenImage.color;
-            c.a = 0f;
-            blackScreenImage.color = c;
+            CanvasGroup cg = blackScreenPanel.GetComponent<CanvasGroup>();
+            if (cg == null) cg = blackScreenPanel.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
+        }
+        else
+        {
+            Debug.LogError("BlackScreenPanel not assigned!");
         }
         
-        // Find the player
         player = GameObject.FindGameObjectWithTag("Player");
         
-        // Find ANY movement script on the player
         if (player != null)
         {
             playerController = player.GetComponent<MonoBehaviour>();
+            
+            // Find the player's visible model (the mesh/renderer)
+            // This could be the main player GameObject or a child with a SkinnedMeshRenderer
+            playerModel = player;
+            
+            // Try to find a child with a renderer
+            SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skinnedMesh != null)
+            {
+                playerModel = skinnedMesh.gameObject;
+            }
+            else
+            {
+                MeshRenderer meshRenderer = player.GetComponentInChildren<MeshRenderer>();
+                if (meshRenderer != null)
+                {
+                    playerModel = meshRenderer.gameObject;
+                }
+            }
             
             if (playerController == null)
             {
@@ -75,8 +98,6 @@ public class DialogueSystem : MonoBehaviour
                     playerController = playerArmature.GetComponent<MonoBehaviour>();
                 }
             }
-            
-            Debug.Log("Player controller found: " + (playerController != null ? playerController.GetType().Name : "None"));
         }
     }
     
@@ -94,29 +115,23 @@ public class DialogueSystem : MonoBehaviour
         isDialogueActive = true;
         dialoguePanel.SetActive(true);
         
-        // Freeze player movement
-        if (playerController != null)
+        // HIDE PLAYER CHARACTER
+        if (playerModel != null)
         {
-            playerController.enabled = false;
-            Debug.Log("Player controller disabled");
+            playerModel.SetActive(false);
+            Debug.Log("Player character hidden");
         }
         
-        // Disable follow camera
-        if (playerFollowCamera != null)
-        {
-            playerFollowCamera.enabled = false;
-            Debug.Log("Follow camera disabled");
-        }
+        // Freeze player movement and camera follow
+        if (playerController != null) playerController.enabled = false;
+        if (playerFollowCamera != null) playerFollowCamera.enabled = false;
         
-        // Store camera position and move to dialogue view
         if (mainCamera != null && dialogueCameraPosition != null)
         {
             originalCameraPos = mainCamera.transform.position;
             originalCameraRot = mainCamera.transform.rotation;
-            
             mainCamera.transform.position = dialogueCameraPosition.position;
             mainCamera.transform.rotation = dialogueCameraPosition.rotation;
-            Debug.Log("Camera moved to dialogue position");
         }
         
         DisplayLine();
@@ -124,11 +139,7 @@ public class DialogueSystem : MonoBehaviour
     
     void DisplayLine()
     {
-        Debug.Log("Displaying line " + currentLine + " of " + dialogueLines.Count);
-        
-        if (typingCoroutine != null)
-            StopCoroutine(typingCoroutine);
-        
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         speakerText.text = dialogueLines[currentLine].speakerName + ":";
         typingCoroutine = StartCoroutine(TypeLine(dialogueLines[currentLine].line));
     }
@@ -137,125 +148,163 @@ public class DialogueSystem : MonoBehaviour
     {
         isTyping = true;
         dialogueText.text = "";
-        
-        if (continueText != null)
-            continueText.gameObject.SetActive(false);
-        
-        float currentSpeed = typingSpeed; // Store the current typing speed
-        Debug.Log("Typing with speed: " + currentSpeed); // Debug to confirm speed
+        if (continueText != null) continueText.gameObject.SetActive(false);
         
         foreach (char c in line.ToCharArray())
         {
             dialogueText.text += c;
-            yield return new WaitForSeconds(currentSpeed);
+            yield return new WaitForSeconds(typingSpeed);
         }
         
         isTyping = false;
-        
-        if (continueText != null)
-            continueText.gameObject.SetActive(true);
+        if (continueText != null) continueText.gameObject.SetActive(true);
     }
     
     void NextLine()
     {
-        // If this is the last line, end dialogue
         if (currentLine == dialogueLines.Count - 1)
         {
-            Debug.Log("Last line completed - ending dialogue");
             EndDialogue();
             return;
         }
-        
-        // Otherwise, move to next line
         currentLine++;
-        Debug.Log("Moving to line " + currentLine);
         DisplayLine();
     }
     
     void EndDialogue()
     {
-        Debug.Log("EndDialogue called - cleaning up");
-        
         isDialogueActive = false;
         dialoguePanel.SetActive(false);
-        
-        if (continueText != null)
-            continueText.gameObject.SetActive(false);
-        
-        // Start the black screen transition
-        StartCoroutine(TransitionAndRestore());
+        if (continueText != null) continueText.gameObject.SetActive(false);
+        StartCoroutine(TransitionSequence());
     }
     
-    IEnumerator TransitionAndRestore()
+    IEnumerator TransitionSequence()
     {
-        // Flash to black
-        if (blackScreenImage != null)
+        if (blackScreenPanel == null)
         {
-            float elapsed = 0f;
-            Color c = blackScreenImage.color;
-            
-            // Fade to black
-            while (elapsed < transitionDuration / 2)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                c.a = Mathf.Lerp(0f, 1f, elapsed / (transitionDuration / 2));
-                blackScreenImage.color = c;
-                yield return null;
-            }
-            
-            c.a = 1f;
-            blackScreenImage.color = c;
+            Debug.LogError("BlackScreenPanel not assigned!");
+            yield break;
         }
         
-        // Restore everything during black screen
-        // Unfreeze player movement
+        CanvasGroup cg = blackScreenPanel.GetComponent<CanvasGroup>();
+        if (cg == null) cg = blackScreenPanel.AddComponent<CanvasGroup>();
+        
+        // FADE TO BLACK
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+            yield return null;
+        }
+        cg.alpha = 1f;
+        
+        Debug.Log("Screen black - waiting 5 seconds");
+        
+        // WAIT 5 SECONDS
+        yield return new WaitForSeconds(5f);
+        
+        Debug.Log("5 seconds passed - restoring game");
+        
+        // REMOVE NUN
+        NPCInteraction npc = FindObjectOfType<NPCInteraction>();
+        if (npc != null)
+        {
+            npc.gameObject.SetActive(false);
+            Debug.Log("Nun removed");
+        }
+        
+        // RESTORE PLAYER CONTROLS
         if (playerController != null)
         {
             playerController.enabled = true;
-            Debug.Log("Player controller enabled");
+            Debug.Log("Player controls restored");
         }
         
-        // Re-enable follow camera
         if (playerFollowCamera != null)
         {
             playerFollowCamera.enabled = true;
-            Debug.Log("Follow camera enabled");
+            Debug.Log("Camera follow restored");
         }
         
-        // Restore camera position
         if (mainCamera != null)
         {
             mainCamera.transform.position = originalCameraPos;
             mainCamera.transform.rotation = originalCameraRot;
-            Debug.Log("Camera restored to original position");
+            Debug.Log("Camera position restored");
         }
         
-        // Fade back in
-        if (blackScreenImage != null)
+        // SHOW PLAYER CHARACTER AGAIN
+        if (playerModel != null)
         {
-            float elapsed = 0f;
-            Color c = blackScreenImage.color;
-            
-            while (elapsed < transitionDuration / 2)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                c.a = Mathf.Lerp(1f, 0f, elapsed / (transitionDuration / 2));
-                blackScreenImage.color = c;
-                yield return null;
-            }
-            
-            c.a = 0f;
-            blackScreenImage.color = c;
+            playerModel.SetActive(true);
+            Debug.Log("Player character shown again");
         }
         
-        // Notify the NPC that dialogue ended (this will disable further interaction)
-        NPCInteraction npc = FindObjectOfType<NPCInteraction>();
-        if (npc != null)
+        // SHOW MAP PROMPT
+        ShowMapPrompt();
+        
+        // FADE BACK IN
+        Debug.Log("Starting fade back in");
+        elapsed = 0f;
+        while (elapsed < fadeDuration)
         {
-            npc.OnDialogueEnd();
-            Debug.Log("Notified NPC that dialogue ended - NPC permanently disabled");
+            elapsed += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+            yield return null;
+        }
+        cg.alpha = 0f;
+        
+        Debug.Log("Fade back complete - screen is normal");
+    }
+    
+    void ShowMapPrompt()
+    {
+        Canvas canvas = GetComponent<Canvas>();
+        if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        
+        GameObject textObj = new GameObject("MapPromptText");
+        textObj.transform.SetParent(canvas.transform, false);
+        
+        TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
+        tmp.text = "Press M for Map";
+        tmp.fontSize = 36;
+        tmp.color = Color.white;
+        tmp.alignment = TextAlignmentOptions.Center;
+        
+        RectTransform rect = textObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(400, 100);
+        
+        CanvasGroup cg = textObj.AddComponent<CanvasGroup>();
+        cg.alpha = 0;
+        StartCoroutine(FadePrompt(cg, textObj));
+    }
+    
+    IEnumerator FadePrompt(CanvasGroup cg, GameObject textObj)
+    {
+        float elapsed = 0f;
+        while (elapsed < 1f)
+        {
+            elapsed += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(0f, 1f, elapsed);
+            yield return null;
         }
         
-        Debug.Log("Dialogue ended - Player can now move normally");
+        yield return new WaitForSeconds(3f);
+        
+        elapsed = 0f;
+        while (elapsed < 1f)
+        {
+            elapsed += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(1f, 0f, elapsed);
+            yield return null;
+        }
+        
+        Destroy(textObj);
     }
 }
+

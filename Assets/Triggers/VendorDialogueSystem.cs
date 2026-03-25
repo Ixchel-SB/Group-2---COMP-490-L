@@ -1,0 +1,343 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using System.Collections;
+using System.Collections.Generic;
+
+public class VendorDialogueSystem : MonoBehaviour
+{
+    [System.Serializable]
+    public class DialogueLine
+    {
+        public string speakerName;
+        [TextArea(2, 4)]
+        public string line;
+        public bool hasChoices = false;
+        public string[] choiceTexts = new string[4];
+    }
+    
+    // UI Elements
+    public GameObject dialoguePanel;
+    public TextMeshProUGUI speakerText;
+    public TextMeshProUGUI dialogueText;
+    public TextMeshProUGUI continueText;
+    
+    // Choice UI Elements
+    public GameObject choicesPanel;
+    public Button[] choiceButtons; // Array of 4 buttons
+    public TextMeshProUGUI[] choiceButtonTexts; // Text for each button
+    
+    public List<DialogueLine> dialogueLines;
+    public float typingSpeed = 0.05f;
+    
+    [Header("Camera Settings")]
+    public Camera mainCamera;
+    public Transform dialogueCameraPosition;
+    public MonoBehaviour playerFollowCamera;
+    
+    [Header("After Dialogue")]
+    public GameObject objectToActivate; // Item to give to player
+    public string nextSceneName = "";
+    public string itemGivenMessage = "You received a map!";
+    
+    private int currentLine = 0;
+    private bool isDialogueActive = false;
+    private bool isTyping = false;
+    private bool waitingForChoice = false;
+    private Coroutine typingCoroutine;
+    private string selectedFood = "";
+    
+    private GameObject player;
+    private MonoBehaviour playerController;
+    private Vector3 originalCameraPos;
+    private Quaternion originalCameraRot;
+    
+    void Start()
+    {
+        dialoguePanel.SetActive(false);
+        if (continueText != null)
+            continueText.text = "Press F to continue";
+        
+        // Hide choices panel initially
+        if (choicesPanel != null)
+            choicesPanel.SetActive(false);
+        
+        // Setup choice buttons
+        if (choiceButtons != null)
+        {
+            for (int i = 0; i < choiceButtons.Length; i++)
+            {
+                int index = i; // Capture for lambda
+                if (choiceButtons[i] != null)
+                {
+                    choiceButtons[i].onClick.AddListener(() => OnChoiceSelected(index));
+                }
+            }
+        }
+        
+        player = GameObject.FindGameObjectWithTag("Player");
+        
+        if (player != null)
+        {
+            playerController = player.GetComponent<MonoBehaviour>();
+            if (playerController == null)
+            {
+                Transform playerArmature = player.transform.Find("PlayerArmature");
+                if (playerArmature != null)
+                    playerController = playerArmature.GetComponent<MonoBehaviour>();
+            }
+        }
+    }
+    
+    void Update()
+    {
+        if (isDialogueActive && !waitingForChoice && Input.GetKeyDown(KeyCode.F) && !isTyping)
+        {
+            NextLine();
+        }
+    }
+    
+    public void StartDialogue()
+    {
+        currentLine = 0;
+        isDialogueActive = true;
+        dialoguePanel.SetActive(true);
+        
+        if (choicesPanel != null)
+            choicesPanel.SetActive(false);
+        
+        if (playerController != null)
+            playerController.enabled = false;
+        if (playerFollowCamera != null)
+            playerFollowCamera.enabled = false;
+        
+        if (mainCamera != null && dialogueCameraPosition != null)
+        {
+            originalCameraPos = mainCamera.transform.position;
+            originalCameraRot = mainCamera.transform.rotation;
+            mainCamera.transform.position = dialogueCameraPosition.position;
+            mainCamera.transform.rotation = dialogueCameraPosition.rotation;
+            Debug.Log("Camera moved to vendor position");
+        }
+        
+        DisplayLine();
+    }
+    
+    void DisplayLine()
+    {
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        
+        // Hide choices panel when showing regular dialogue
+        if (choicesPanel != null)
+            choicesPanel.SetActive(false);
+        
+        waitingForChoice = false;
+        
+        DialogueLine line = dialogueLines[currentLine];
+        speakerText.text = line.speakerName + ":";
+        
+        if (line.hasChoices)
+        {
+            // This line has choices - type it, then show choices
+            typingCoroutine = StartCoroutine(TypeLineWithChoices(line.line, line.choiceTexts));
+        }
+        else
+        {
+            typingCoroutine = StartCoroutine(TypeLine(line.line));
+        }
+    }
+    
+    IEnumerator TypeLine(string line)
+    {
+        isTyping = true;
+        dialogueText.text = "";
+        if (continueText != null) continueText.gameObject.SetActive(false);
+        
+        foreach (char c in line.ToCharArray())
+        {
+            dialogueText.text += c;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+        
+        isTyping = false;
+        if (continueText != null) continueText.gameObject.SetActive(true);
+    }
+    
+    IEnumerator TypeLineWithChoices(string line, string[] choices)
+    {
+        isTyping = true;
+        dialogueText.text = "";
+        if (continueText != null) continueText.gameObject.SetActive(false);
+        
+        foreach (char c in line.ToCharArray())
+        {
+            dialogueText.text += c;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+        
+        isTyping = false;
+        
+        // Show choices after typing is complete
+        waitingForChoice = true;
+        if (choicesPanel != null)
+        {
+            choicesPanel.SetActive(true);
+            
+            // Set choice button texts
+            for (int i = 0; i < choiceButtons.Length && i < choices.Length; i++)
+            {
+                if (choiceButtonTexts[i] != null)
+                {
+                    choiceButtonTexts[i].text = choices[i];
+                }
+                if (choiceButtons[i] != null)
+                {
+                    choiceButtons[i].interactable = true;
+                }
+            }
+        }
+    }
+    
+    void OnChoiceSelected(int choiceIndex)
+    {
+        if (!waitingForChoice) return;
+        
+        waitingForChoice = false;
+        
+        // Hide choices
+        if (choicesPanel != null)
+            choicesPanel.SetActive(false);
+        
+        // Set selected food based on choice
+        switch (choiceIndex)
+        {
+            case 0:
+                selectedFood = "Sub Sandwich";
+                break;
+            case 1:
+                selectedFood = "Chocolate Brioche";
+                break;
+            case 2:
+                selectedFood = "Spice Cupcake";
+                break;
+            case 3:
+                selectedFood = "Frosted Cake";
+                break;
+        }
+        
+        Debug.Log("Player selected: " + selectedFood);
+        
+        // Move to next line (the response after choice)
+        currentLine++;
+        
+        // Insert the selected food into the response line
+        if (currentLine < dialogueLines.Count)
+        {
+            string responseLine = dialogueLines[currentLine].line;
+            responseLine = responseLine.Replace("{food}", selectedFood);
+            dialogueLines[currentLine].line = responseLine;
+        }
+        
+        DisplayLine();
+    }
+    
+    void NextLine()
+    {
+        currentLine++;
+        
+        if (currentLine < dialogueLines.Count)
+        {
+            DisplayLine();
+        }
+        else
+        {
+            EndDialogue();
+        }
+    }
+    
+    void EndDialogue()
+    {
+        isDialogueActive = false;
+        dialoguePanel.SetActive(false);
+        if (choicesPanel != null)
+            choicesPanel.SetActive(false);
+        if (continueText != null) continueText.gameObject.SetActive(false);
+        
+        if (playerController != null)
+            playerController.enabled = true;
+        if (playerFollowCamera != null)
+            playerFollowCamera.enabled = true;
+        
+        if (mainCamera != null)
+        {
+            mainCamera.transform.position = originalCameraPos;
+            mainCamera.transform.rotation = originalCameraRot;
+            Debug.Log("Camera restored to player");
+        }
+        
+        // Show what the player chose
+        string message = "You chose the " + selectedFood + "! Enjoy!";
+        StartCoroutine(ShowMessage(message));
+        
+        if (objectToActivate != null)
+        {
+            objectToActivate.SetActive(true);
+        }
+        
+        if (!string.IsNullOrEmpty(nextSceneName))
+        {
+            StartCoroutine(LoadNextScene());
+        }
+        
+        Debug.Log("Vendor dialogue ended - Player chose: " + selectedFood);
+    }
+    
+    IEnumerator ShowMessage(string message)
+    {
+        Canvas canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) yield break;
+        
+        GameObject msgObj = new GameObject("TempMessage");
+        msgObj.transform.SetParent(canvas.transform, false);
+        
+        TextMeshProUGUI tmp = msgObj.AddComponent<TextMeshProUGUI>();
+        tmp.text = message;
+        tmp.fontSize = 28;
+        tmp.color = Color.yellow;
+        tmp.alignment = TextAlignmentOptions.Center;
+        
+        RectTransform rect = msgObj.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(0, 200);
+        rect.sizeDelta = new Vector2(600, 60);
+        
+        CanvasGroup cg = msgObj.AddComponent<CanvasGroup>();
+        
+        float elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+            yield return null;
+        }
+        
+        yield return new WaitForSeconds(2f);
+        
+        elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+            yield return null;
+        }
+        
+        Destroy(msgObj);
+    }
+    
+    IEnumerator LoadNextScene()
+    {
+        yield return new WaitForSeconds(1f);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(nextSceneName);
+    }
+}
