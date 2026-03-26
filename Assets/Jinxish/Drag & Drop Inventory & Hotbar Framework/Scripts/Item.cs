@@ -2,6 +2,12 @@ using UnityEngine;
 
 namespace InventoryFramework
 {
+    public enum ItemActionType
+    {
+        Read,
+        UseOnTarget
+    }
+
     [CreateAssetMenu(fileName = "New Item", menuName = "Inventory/Item")]
     public class Item : ScriptableObject
     {
