@@ -12,7 +12,7 @@ namespace InventoryFramework
         Hotbar,
     }
 
-    public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler
+    public class InventorySlotUI : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
     {
         public Image icon;
         public TextMeshProUGUI countText;
@@ -240,6 +240,19 @@ namespace InventoryFramework
             DragContext.draggedCount = 0;
 
             RefreshAllUIs();
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            var slot = GetSlot();
+            if (slot == null || slot.IsEmpty) return;
+
+            Debug.Log("Clicked item: " + slot.item.itemName);
+
+            if (slot.item.actionType == Item.ItemActionType.Read)
+            {
+                ReadableItemUI.Instance.Open(slot.item);
+            }
         }
 
         private InventorySlot GetOriginalSlot()

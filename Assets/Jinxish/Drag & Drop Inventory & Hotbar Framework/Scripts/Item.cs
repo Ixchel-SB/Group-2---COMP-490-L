@@ -2,21 +2,26 @@ using UnityEngine;
 
 namespace InventoryFramework
 {
-    public enum ItemActionType
-    {
-        Read,
-        UseOnTarget
-    }
-
     [CreateAssetMenu(fileName = "New Item", menuName = "Inventory/Item")]
     public class Item : ScriptableObject
     {
+
+        public enum ItemActionType
+        {
+            None,
+            Read,
+            UseOnTarget
+        }
+
+        public ItemActionType actionType;
+
         public int id;
         public string itemName;
         public string description;
         public Sprite icon;
         public int maxStack = 1;
         public GameObject model;
+        public Sprite readableImage;
     }
 }
 
