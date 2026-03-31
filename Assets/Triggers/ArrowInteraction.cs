@@ -5,13 +5,13 @@ using System.Collections;
 public class ArrowInteraction : MonoBehaviour
 {
     [Header("Vendor Settings")]
-    public GameObject vendorNPC; // Drag Vendor_SittingIdle here
-    public VendorDialogueSystem vendorDialogueSystem; // Drag VendorDialogueManager here
-    public Transform vendorCameraPos; // Drag VendorCameraPos here
+    public GameObject vendorNPC;
+    public VendorDialogueSystem vendorDialogueSystem;
+    public Transform vendorCameraPos;
     
     [Header("Interaction")]
     public string interactionMessage = "Press F to talk to vendor";
-    public GameObject interactionPrompt; // UI text prompt
+    public GameObject interactionPrompt;
     
     private bool playerInRange = false;
     private bool hasInteracted = false;
@@ -21,7 +21,6 @@ public class ArrowInteraction : MonoBehaviour
     
     void Start()
     {
-        // Setup interaction prompt
         if (interactionPrompt != null)
         {
             promptCanvasGroup = interactionPrompt.GetComponent<CanvasGroup>();
@@ -31,7 +30,6 @@ public class ArrowInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
         }
         
-        // Find player and controller
         player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
@@ -44,13 +42,12 @@ public class ArrowInteraction : MonoBehaviour
             }
         }
         
-        // Arrow starts hidden - PlazaTrigger will reveal it
+        // Arrow starts hidden
         gameObject.SetActive(false);
     }
     
     void Update()
     {
-        // Check for interaction when player is in range
         if (playerInRange && !hasInteracted && Input.GetKeyDown(KeyCode.F))
         {
             InteractWithVendor();
@@ -62,23 +59,17 @@ public class ArrowInteraction : MonoBehaviour
         hasInteracted = true;
         Debug.Log("Player interacted with arrow - starting vendor dialogue");
         
-        // Hide interaction prompt immediately
         if (interactionPrompt != null)
         {
             interactionPrompt.SetActive(false);
         }
         
-        // Hide the arrow IMMEDIATELY when dialogue starts
         gameObject.SetActive(false);
         Debug.Log("Arrow disappeared!");
         
-        // Start vendor dialogue
         if (vendorDialogueSystem != null)
         {
-            // Set the camera position for vendor dialogue
             vendorDialogueSystem.dialogueCameraPosition = vendorCameraPos;
-            
-            // Start the dialogue
             vendorDialogueSystem.StartDialogue();
         }
         else

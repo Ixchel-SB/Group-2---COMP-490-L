@@ -37,8 +37,8 @@ public class DialogueSystem : MonoBehaviour
     private Coroutine typingCoroutine;
     
     private GameObject player;
+    private GameObject playerModel;
     private MonoBehaviour playerController;
-    private GameObject playerModel; // Reference to the player's visible model
     private Vector3 originalCameraPos;
     private Quaternion originalCameraRot;
     
@@ -60,22 +60,12 @@ public class DialogueSystem : MonoBehaviour
             cg.interactable = false;
             cg.blocksRaycasts = false;
         }
-        else
-        {
-            Debug.LogError("BlackScreenPanel not assigned!");
-        }
         
         player = GameObject.FindGameObjectWithTag("Player");
         
         if (player != null)
         {
-            playerController = player.GetComponent<MonoBehaviour>();
-            
-            // Find the player's visible model (the mesh/renderer)
-            // This could be the main player GameObject or a child with a SkinnedMeshRenderer
-            playerModel = player;
-            
-            // Try to find a child with a renderer
+            // Find the player's visible model
             SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
             if (skinnedMesh != null)
             {
@@ -83,12 +73,10 @@ public class DialogueSystem : MonoBehaviour
             }
             else
             {
-                MeshRenderer meshRenderer = player.GetComponentInChildren<MeshRenderer>();
-                if (meshRenderer != null)
-                {
-                    playerModel = meshRenderer.gameObject;
-                }
+                playerModel = player;
             }
+            
+            playerController = player.GetComponent<MonoBehaviour>();
             
             if (playerController == null)
             {
@@ -122,7 +110,7 @@ public class DialogueSystem : MonoBehaviour
             Debug.Log("Player character hidden");
         }
         
-        // Freeze player movement and camera follow
+        // Freeze player movement
         if (playerController != null) playerController.enabled = false;
         if (playerFollowCamera != null) playerFollowCamera.enabled = false;
         
@@ -173,9 +161,15 @@ public class DialogueSystem : MonoBehaviour
     
     void EndDialogue()
     {
+        Debug.Log("EndDialogue called - cleaning up");
+        
         isDialogueActive = false;
         dialoguePanel.SetActive(false);
-        if (continueText != null) continueText.gameObject.SetActive(false);
+        
+        if (continueText != null)
+            continueText.gameObject.SetActive(false);
+        
+        // Start the black screen transition
         StartCoroutine(TransitionSequence());
     }
     
@@ -215,7 +209,7 @@ public class DialogueSystem : MonoBehaviour
             Debug.Log("Nun removed");
         }
         
-        // RESTORE PLAYER CONTROLS
+        // RESTORE CONTROLS
         if (playerController != null)
         {
             playerController.enabled = true;
@@ -240,6 +234,18 @@ public class DialogueSystem : MonoBehaviour
         {
             playerModel.SetActive(true);
             Debug.Log("Player character shown again");
+        }
+        
+        // NOTIFY GAME PROGRESS MANAGER THAT NUN DIALOGUE IS COMPLETE
+        GameProgressManager progressManager = FindObjectOfType<GameProgressManager>();
+        if (progressManager != null)
+        {
+            progressManager.CompleteNunDialogue();
+            Debug.Log("Nun dialogue completed - notified GameProgressManager");
+        }
+        else
+        {
+            Debug.LogWarning("GameProgressManager not found in scene! Make sure it exists.");
         }
         
         // SHOW MAP PROMPT
