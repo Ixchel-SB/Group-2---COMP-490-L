@@ -57,6 +57,16 @@ namespace InventoryFramework
                 selectedIndex = (selectedIndex - 1 + hotbar.size) % hotbar.size;
                 RefreshUI();
             }
+
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                Item selectedItem = GetSelectedItem();
+
+                if (selectedItem == null)
+                    Debug.Log("No item selected.");
+                else
+                    Debug.Log("Selected hotbar item: " + selectedItem.itemName);
+            }
         }
 
         public void RefreshUI()
@@ -83,6 +93,24 @@ namespace InventoryFramework
             if (slot.item.model == null) return;
 
             Instantiate(slot.item.model, toolsParent);
+        }
+
+        public InventorySlot GetSelectedSlot()
+        {
+            if (selectedIndex < 0 || selectedIndex >= hotbar.size)
+                return null;
+
+            return hotbar.slots[selectedIndex];
+        }
+
+        public Item GetSelectedItem()
+        {
+            InventorySlot slot = GetSelectedSlot();
+
+            if (slot == null || slot.IsEmpty)
+                return null;
+
+            return slot.item;
         }
     }
 
