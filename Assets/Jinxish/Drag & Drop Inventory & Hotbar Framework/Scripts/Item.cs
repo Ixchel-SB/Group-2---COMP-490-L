@@ -21,7 +21,7 @@ namespace InventoryFramework
         public Sprite icon;
         public int maxStack = 1;
         public GameObject model;
-        public Sprite readableImage;
+        public Sprite[] readablePages;
     }
 }
 
