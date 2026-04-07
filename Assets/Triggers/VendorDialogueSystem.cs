@@ -234,25 +234,6 @@ public class VendorDialogueSystem : MonoBehaviour
                     Debug.LogError("Button " + i + " is NULL in the array!");
                 }
             }
-            
-            // COMMENTED OUT - This was overwriting your manually typed button text
-            // Set choice button texts
-            // for (int i = 0; i < choiceButtons.Length && i < choices.Length; i++)
-            // {
-            //     if (choiceButtonTexts[i] != null)
-            //     {
-            //         choiceButtonTexts[i].text = choices[i];
-            //         Debug.Log("Choice button " + i + " text set to: " + choices[i]);
-            //     }
-            //     else
-            //     {
-            //         Debug.LogError("Choice button text " + i + " is NULL!");
-            //     }
-            //     if (choiceButtons[i] != null)
-            //     {
-            //         choiceButtons[i].interactable = true;
-            //     }
-            // }
         }
         else
         {
@@ -295,6 +276,11 @@ public class VendorDialogueSystem : MonoBehaviour
         }
         
         Debug.Log("Player selected: " + selectedFood);
+        
+        // SAVE SELECTED FOOD TO PLAYERPREFS IMMEDIATELY
+        PlayerPrefs.SetString("SelectedFood", selectedFood);
+        PlayerPrefs.Save();
+        Debug.Log("Food saved to PlayerPrefs: " + selectedFood);
         
         // Move to next line (the response after choice)
         currentLine++;
@@ -347,6 +333,13 @@ public class VendorDialogueSystem : MonoBehaviour
             mainCamera.transform.position = originalCameraPos;
             mainCamera.transform.rotation = originalCameraRot;
             Debug.Log("Camera restored to player");
+        }
+        
+        // NOTIFY GAME PROGRESS MANAGER THAT VENDOR DIALOGUE IS COMPLETE
+        if (GameProgressManager.Instance != null)
+        {
+            GameProgressManager.Instance.CompleteVendorDialogue(selectedFood);
+            Debug.Log("Vendor dialogue completed - notified GameProgressManager");
         }
         
         // Show what the player chose

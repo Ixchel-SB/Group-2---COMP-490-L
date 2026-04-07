@@ -5,6 +5,8 @@ public class GameProgressManager : MonoBehaviour
     public static GameProgressManager Instance;
     
     private bool nunDialogueCompleted = false;
+    private bool vendorDialogueCompleted = false; // NEW
+    private string selectedFood = ""; // NEW - store chosen food
     
     void Awake()
     {
@@ -24,6 +26,9 @@ public class GameProgressManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         Debug.Log("GameProgressManager Start - Time.timeScale = " + Time.timeScale);
+        
+        // Load saved food if exists
+        selectedFood = PlayerPrefs.GetString("SelectedFood", "");
     }
     
     public void CompleteNunDialogue()
@@ -44,8 +49,28 @@ public class GameProgressManager : MonoBehaviour
         }
     }
     
+    public void CompleteVendorDialogue(string food)
+    {
+        vendorDialogueCompleted = true;
+        selectedFood = food;
+        PlayerPrefs.SetString("SelectedFood", food);
+        PlayerPrefs.Save();
+        Debug.Log("=== VENDOR DIALOGUE COMPLETED ===");
+        Debug.Log("Selected food: " + food);
+    }
+    
     public bool IsNunDialogueCompleted()
     {
         return nunDialogueCompleted;
+    }
+    
+    public bool IsVendorDialogueCompleted()
+    {
+        return vendorDialogueCompleted;
+    }
+    
+    public string GetSelectedFood()
+    {
+        return selectedFood;
     }
 }
