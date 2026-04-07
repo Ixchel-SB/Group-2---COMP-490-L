@@ -31,7 +31,7 @@ public class GameProgressManager : MonoBehaviour
         nunDialogueCompleted = true;
         Debug.Log("=== NUN DIALOGUE COMPLETED ===");
         
-        // Find and enable the PlazaTriggerText (changed from TriggerText)
+        // Find and enable the PlazaTriggerText
         PlazaTriggerText plazaTrigger = FindObjectOfType<PlazaTriggerText>();
         if (plazaTrigger != null)
         {

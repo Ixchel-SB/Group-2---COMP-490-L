@@ -65,14 +65,26 @@ public class VendorDialogueSystem : MonoBehaviour
         // Setup choice buttons
         if (choiceButtons != null)
         {
+            Debug.Log("Setting up " + choiceButtons.Length + " choice buttons");
             for (int i = 0; i < choiceButtons.Length; i++)
             {
                 int index = i; // Capture for lambda
                 if (choiceButtons[i] != null)
                 {
+                    // Remove any existing listeners to avoid duplicates
+                    choiceButtons[i].onClick.RemoveAllListeners();
                     choiceButtons[i].onClick.AddListener(() => OnChoiceSelected(index));
+                    Debug.Log("Button " + i + " listener added: " + choiceButtons[i].name);
+                }
+                else
+                {
+                    Debug.LogError("Button " + i + " is null! Make sure all buttons are assigned in the Inspector.");
                 }
             }
+        }
+        else
+        {
+            Debug.LogError("choiceButtons array is null! Assign buttons in Inspector.");
         }
         
         player = GameObject.FindGameObjectWithTag("Player");
@@ -95,6 +107,15 @@ public class VendorDialogueSystem : MonoBehaviour
         {
             NextLine();
         }
+        
+        // NUMBER KEYS FOR CHOICES (1,2,3,4)
+        if (waitingForChoice)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1)) OnChoiceSelected(0);
+            else if (Input.GetKeyDown(KeyCode.Alpha2)) OnChoiceSelected(1);
+            else if (Input.GetKeyDown(KeyCode.Alpha3)) OnChoiceSelected(2);
+            else if (Input.GetKeyDown(KeyCode.Alpha4)) OnChoiceSelected(3);
+        }
     }
     
     public void StartDialogue()
@@ -102,6 +123,10 @@ public class VendorDialogueSystem : MonoBehaviour
         currentLine = 0;
         isDialogueActive = true;
         dialoguePanel.SetActive(true);
+        
+        // UNLOCK THE CURSOR SO PLAYER CAN CLICK BUTTONS
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         
         if (choicesPanel != null)
             choicesPanel.SetActive(false);
@@ -182,26 +207,70 @@ public class VendorDialogueSystem : MonoBehaviour
         if (choicesPanel != null)
         {
             choicesPanel.SetActive(true);
+            Debug.Log("ChoicesPanel activated");
             
-            // Set choice button texts
-            for (int i = 0; i < choiceButtons.Length && i < choices.Length; i++)
+            // Force cursor visible
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            
+            // Force enable all buttons and log their state
+            for (int i = 0; i < choiceButtons.Length; i++)
             {
-                if (choiceButtonTexts[i] != null)
-                {
-                    choiceButtonTexts[i].text = choices[i];
-                }
                 if (choiceButtons[i] != null)
                 {
                     choiceButtons[i].interactable = true;
+                    Debug.Log("Button " + i + " - Name: " + choiceButtons[i].name);
+                    Debug.Log("Button " + i + " - Interactable: " + choiceButtons[i].interactable);
+                    
+                    // Check if Image component has Raycast Target
+                    Image btnImage = choiceButtons[i].GetComponent<Image>();
+                    if (btnImage != null)
+                    {
+                        Debug.Log("Button " + i + " - Raycast Target: " + btnImage.raycastTarget);
+                    }
+                }
+                else
+                {
+                    Debug.LogError("Button " + i + " is NULL in the array!");
                 }
             }
+            
+            // COMMENTED OUT - This was overwriting your manually typed button text
+            // Set choice button texts
+            // for (int i = 0; i < choiceButtons.Length && i < choices.Length; i++)
+            // {
+            //     if (choiceButtonTexts[i] != null)
+            //     {
+            //         choiceButtonTexts[i].text = choices[i];
+            //         Debug.Log("Choice button " + i + " text set to: " + choices[i]);
+            //     }
+            //     else
+            //     {
+            //         Debug.LogError("Choice button text " + i + " is NULL!");
+            //     }
+            //     if (choiceButtons[i] != null)
+            //     {
+            //         choiceButtons[i].interactable = true;
+            //     }
+            // }
+        }
+        else
+        {
+            Debug.LogError("ChoicesPanel is null!");
         }
     }
     
     void OnChoiceSelected(int choiceIndex)
     {
-        if (!waitingForChoice) return;
+        Debug.Log("!!! BUTTON CLICK DETECTED !!! Index: " + choiceIndex);
         
+        if (!waitingForChoice) 
+        {
+            Debug.Log("Not waiting for choice - ignoring");
+            return;
+        }
+        
+        Debug.Log("Choice accepted! Processing selection...");
         waitingForChoice = false;
         
         // Hide choices
@@ -236,6 +305,7 @@ public class VendorDialogueSystem : MonoBehaviour
             string responseLine = dialogueLines[currentLine].line;
             responseLine = responseLine.Replace("{food}", selectedFood);
             dialogueLines[currentLine].line = responseLine;
+            Debug.Log("Response line updated to: " + responseLine);
         }
         
         DisplayLine();
@@ -268,6 +338,10 @@ public class VendorDialogueSystem : MonoBehaviour
         if (playerFollowCamera != null)
             playerFollowCamera.enabled = true;
         
+        // LOCK THE CURSOR AGAIN WHEN DIALOGUE ENDS
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        
         if (mainCamera != null)
         {
             mainCamera.transform.position = originalCameraPos;
@@ -278,6 +352,9 @@ public class VendorDialogueSystem : MonoBehaviour
         // Show what the player chose
         string message = "You chose the " + selectedFood + "! Enjoy!";
         StartCoroutine(ShowMessage(message));
+        
+        // Add to inventory
+        AddToInventory(selectedFood);
         
         if (objectToActivate != null)
         {
@@ -290,6 +367,16 @@ public class VendorDialogueSystem : MonoBehaviour
         }
         
         Debug.Log("Vendor dialogue ended - Player chose: " + selectedFood);
+    }
+    
+    void AddToInventory(string food)
+    {
+        Debug.Log("Adding to inventory: " + food);
+        // TODO: Add your inventory system logic here
+        // Example: InventoryManager.Instance.AddItem(food);
+        
+        // Show confirmation in console
+        Debug.Log("Inventory updated with: " + food);
     }
     
     IEnumerator ShowMessage(string message)

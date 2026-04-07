@@ -19,8 +19,20 @@ public class ArrowInteraction : MonoBehaviour
     private GameObject player;
     private MonoBehaviour playerController;
     
+    void OnEnable()
+    {
+        Debug.Log("ArrowInteraction: Arrow was ENABLED at " + Time.time);
+    }
+    
+    void OnDisable()
+    {
+        Debug.Log("ArrowInteraction: Arrow was DISABLED at " + Time.time);
+    }
+    
     void Start()
     {
+        Debug.Log("ArrowInteraction Start - Arrow active: " + gameObject.activeSelf);
+        
         if (interactionPrompt != null)
         {
             promptCanvasGroup = interactionPrompt.GetComponent<CanvasGroup>();
@@ -42,8 +54,9 @@ public class ArrowInteraction : MonoBehaviour
             }
         }
         
-        // Arrow starts hidden
-        gameObject.SetActive(false);
+        // REMOVED: gameObject.SetActive(false);
+        // The arrow should be disabled by PlazaTriggerText at start, not here
+        Debug.Log("ArrowInteraction: Ready - arrow active: " + gameObject.activeSelf);
     }
     
     void Update()
@@ -65,12 +78,13 @@ public class ArrowInteraction : MonoBehaviour
         }
         
         gameObject.SetActive(false);
-        Debug.Log("Arrow disappeared!");
+        Debug.Log("Arrow disappeared after interaction!");
         
         if (vendorDialogueSystem != null)
         {
             vendorDialogueSystem.dialogueCameraPosition = vendorCameraPos;
             vendorDialogueSystem.StartDialogue();
+            Debug.Log("Vendor dialogue started");
         }
         else
         {
@@ -83,6 +97,7 @@ public class ArrowInteraction : MonoBehaviour
         if (other.CompareTag("Player") && !hasInteracted)
         {
             playerInRange = true;
+            Debug.Log("Player in range of arrow");
             if (interactionPrompt != null)
             {
                 interactionPrompt.SetActive(true);
@@ -96,6 +111,7 @@ public class ArrowInteraction : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
+            Debug.Log("Player left range of arrow");
             if (interactionPrompt != null)
             {
                 StartCoroutine(FadeOutPrompt());
