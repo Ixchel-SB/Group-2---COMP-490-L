@@ -41,6 +41,9 @@ public class RoommateDialogue : MonoBehaviour
     
     void Start()
     {
+        // FORCE GAME TO RUN
+        Time.timeScale = 1f;
+        
         dialoguePanel.SetActive(false);
         if (continueText != null)
             continueText.text = "Press F to continue";

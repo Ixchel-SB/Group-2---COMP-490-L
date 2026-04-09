@@ -7,10 +7,15 @@ public class DormDoorInteraction : MonoBehaviour
     [Header("Door Settings")]
     public string interactionMessage = "Press F to enter dorm";
     public GameObject interactionPrompt;
-    public Transform insideDormPosition; // Where player spawns inside dorm
-    public GameObject blackScreenPanel; // Drag your existing BlackScreenPanel here
+    public Transform insideDormPosition;
+    public GameObject blackScreenPanel;
     public float fadeDuration = 0.5f;
-    public float waitTime = 3f; // Wait 3 seconds at black screen
+    public float waitTime = 3f;
+    
+    [Header("Block Message")]
+    public TextMeshProUGUI blockMessageText;
+    public string blockMessage = "I don't want to go inside yet. I want to get something to eat first...";
+    public float messageDuration = 3f;
     
     private bool playerInRange = false;
     private GameObject player;
@@ -20,6 +25,9 @@ public class DormDoorInteraction : MonoBehaviour
     
     void Start()
     {
+        // FORCE GAME TO RUN
+        Time.timeScale = 1f;
+        
         if (interactionPrompt != null)
         {
             promptCanvasGroup = interactionPrompt.GetComponent<CanvasGroup>();
@@ -29,7 +37,6 @@ public class DormDoorInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
         }
         
-        // Get the black screen CanvasGroup
         if (blackScreenPanel != null)
         {
             blackCanvasGroup = blackScreenPanel.GetComponent<CanvasGroup>();
@@ -37,13 +44,68 @@ public class DormDoorInteraction : MonoBehaviour
                 blackCanvasGroup = blackScreenPanel.AddComponent<CanvasGroup>();
             blackCanvasGroup.alpha = 0f;
         }
+        
+        // Hide block message at start
+        if (blockMessageText != null)
+        {
+            CanvasGroup cg = blockMessageText.GetComponent<CanvasGroup>();
+            if (cg == null)
+                cg = blockMessageText.gameObject.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            blockMessageText.gameObject.SetActive(false);
+        }
     }
     
     void Update()
     {
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
-            StartCoroutine(EnterDorm());
+            // Check if vendor dialogue was completed
+            if (GameProgressManager.Instance != null && GameProgressManager.Instance.IsVendorDialogueCompleted())
+            {
+                StartCoroutine(EnterDorm());
+            }
+            else
+            {
+                // Show block message
+                StartCoroutine(ShowBlockMessage());
+            }
+        }
+    }
+    
+    IEnumerator ShowBlockMessage()
+    {
+        Debug.Log("Cannot enter dorm - vendor dialogue not completed yet");
+        
+        if (blockMessageText != null)
+        {
+            CanvasGroup cg = blockMessageText.GetComponent<CanvasGroup>();
+            blockMessageText.text = blockMessage;
+            blockMessageText.gameObject.SetActive(true);
+            
+            // Fade in
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            cg.alpha = 1f;
+            
+            // Wait
+            yield return new WaitForSeconds(messageDuration);
+            
+            // Fade out
+            elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            cg.alpha = 0f;
+            blockMessageText.gameObject.SetActive(false);
         }
     }
     
@@ -52,7 +114,6 @@ public class DormDoorInteraction : MonoBehaviour
         isTransitioning = true;
         Debug.Log("Entering dorm...");
         
-        // Hide interaction prompt
         if (interactionPrompt != null)
         {
             interactionPrompt.SetActive(false);
@@ -73,10 +134,8 @@ public class DormDoorInteraction : MonoBehaviour
         
         Debug.Log("Screen black - waiting " + waitTime + " seconds");
         
-        // WAIT
         yield return new WaitForSeconds(waitTime);
         
-        // MOVE PLAYER TO INSIDE DORM POSITION
         if (player != null && insideDormPosition != null)
         {
             player.transform.position = insideDormPosition.position;
