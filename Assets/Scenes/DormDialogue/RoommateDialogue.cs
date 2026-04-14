@@ -41,7 +41,6 @@ public class RoommateDialogue : MonoBehaviour
     
     void Start()
     {
-        // FORCE GAME TO RUN
         Time.timeScale = 1f;
         
         dialoguePanel.SetActive(false);
@@ -70,6 +69,11 @@ public class RoommateDialogue : MonoBehaviour
         }
     }
     
+    public bool IsDialogueActive()
+    {
+        return isDialogueActive;
+    }
+    
     public void StartDialogue()
     {
         if (hasTalked) return;
@@ -95,6 +99,12 @@ public class RoommateDialogue : MonoBehaviour
         }
         
         DisplayLine();
+    }
+    
+    public void SetAsSecondDialogue()
+    {
+        hasTalked = false;
+        Debug.Log(roommateName + "'s second dialogue is now available");
     }
     
     void DisplayLine()

@@ -12,26 +12,38 @@ public class DoorBlockMessage : MonoBehaviour
     
     void Start()
     {
+        // Make sure the GameObject is active
+        gameObject.SetActive(true);
+        
         if (thinkingText != null)
         {
             canvasGroup = thinkingText.GetComponent<CanvasGroup>();
             if (canvasGroup == null)
                 canvasGroup = thinkingText.gameObject.AddComponent<CanvasGroup>();
             canvasGroup.alpha = 0f;
-            thinkingText.gameObject.SetActive(false);
+            thinkingText.gameObject.SetActive(true);
         }
     }
     
     public void ShowMessage(string message)
     {
+        // Ensure the GameObject is active before starting coroutine
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+        
         StartCoroutine(DisplayMessage(message));
     }
     
     IEnumerator DisplayMessage(string message)
     {
-        if (thinkingText == null) yield break;
+        if (thinkingText == null) 
+        {
+            Debug.LogError("DoorBlockMessage: thinkingText is not assigned!");
+            yield break;
+        }
         
-        thinkingText.gameObject.SetActive(true);
         thinkingText.text = "";
         
         float elapsed = 0f;
@@ -59,6 +71,5 @@ public class DoorBlockMessage : MonoBehaviour
             yield return null;
         }
         canvasGroup.alpha = 0f;
-        thinkingText.gameObject.SetActive(false);
     }
 }

@@ -5,6 +5,7 @@ public class RoomDoorInteraction : MonoBehaviour
 {
     [Header("Door Settings")]
     public string doorName = "Door";
+    public string interactionMessage = "Press F to open door";
     public GameObject interactionPrompt;
     public Transform teleportPosition;
     public GameObject blackScreenPanel;
@@ -15,6 +16,7 @@ public class RoomDoorInteraction : MonoBehaviour
     public bool requireValentinaTalked = false;
     public string blockMessage = "I should talk with Valentina first before going inside";
     
+    [Header("Block Message UI")]
     public DoorBlockMessage doorBlockMessage;
     
     private bool playerInRange = false;
@@ -25,6 +27,8 @@ public class RoomDoorInteraction : MonoBehaviour
     
     void Start()
     {
+        Time.timeScale = 1f;
+        
         if (interactionPrompt != null)
         {
             promptCanvasGroup = interactionPrompt.GetComponent<CanvasGroup>();
@@ -73,19 +77,46 @@ public class RoomDoorInteraction : MonoBehaviour
     
     void ShowBlockMessage()
     {
+        Debug.Log("Cannot use " + doorName + " - " + blockMessage);
+        
         if (doorBlockMessage != null)
         {
             doorBlockMessage.ShowMessage(blockMessage);
+        }
+        else
+        {
+            Debug.LogWarning("DoorBlockMessage is not assigned to " + doorName);
+        }
+        
+        if (interactionPrompt != null)
+        {
+            StartCoroutine(TempHidePrompt());
+        }
+    }
+    
+    IEnumerator TempHidePrompt()
+    {
+        interactionPrompt.SetActive(false);
+        yield return new WaitForSeconds(3f);
+        if (playerInRange && !isTransitioning)
+        {
+            interactionPrompt.SetActive(true);
+            if (promptCanvasGroup != null)
+                promptCanvasGroup.alpha = 1f;
         }
     }
     
     IEnumerator UseDoor()
     {
         isTransitioning = true;
+        Debug.Log("Using door: " + doorName);
         
         if (interactionPrompt != null)
+        {
             interactionPrompt.SetActive(false);
+        }
         
+        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -100,12 +131,15 @@ public class RoomDoorInteraction : MonoBehaviour
         
         yield return new WaitForSeconds(waitTime);
         
+        // Teleport player
         if (player != null && teleportPosition != null)
         {
             player.transform.position = teleportPosition.position;
             player.transform.rotation = teleportPosition.rotation;
+            Debug.Log("Player teleported to: " + teleportPosition.name);
         }
         
+        // Fade back in
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;

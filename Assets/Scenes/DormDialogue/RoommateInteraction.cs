@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class RoommateInteraction : MonoBehaviour
 {
@@ -7,6 +8,7 @@ public class RoommateInteraction : MonoBehaviour
     
     private bool playerInRange = false;
     private bool hasInteracted = false;
+    private bool hasNotified = false;
     private CanvasGroup promptCanvasGroup;
     
     void Start()
@@ -35,12 +37,33 @@ public class RoommateInteraction : MonoBehaviour
         
         if (roommateDialogue != null)
         {
+            StartCoroutine(WaitForDialogueEnd());
             roommateDialogue.StartDialogue();
         }
         
         if (interactionPrompt != null)
         {
             interactionPrompt.SetActive(false);
+        }
+    }
+    
+    IEnumerator WaitForDialogueEnd()
+    {
+        // Wait while dialogue is active
+        while (roommateDialogue != null && roommateDialogue.IsDialogueActive())
+        {
+            yield return null;
+        }
+        
+        // Now notify DormManager after dialogue ends
+        if (roommateDialogue != null && roommateDialogue.roommateName == "Valentina" && !hasNotified)
+        {
+            hasNotified = true;
+            DormManager dormManager = FindObjectOfType<DormManager>();
+            if (dormManager != null)
+            {
+                dormManager.ValentinaFirstDialogueComplete();
+            }
         }
     }
     
@@ -69,7 +92,7 @@ public class RoommateInteraction : MonoBehaviour
         }
     }
     
-    System.Collections.IEnumerator FadeInPrompt()
+    IEnumerator FadeInPrompt()
     {
         float elapsed = 0f;
         while (elapsed < 0.3f)
@@ -81,7 +104,7 @@ public class RoommateInteraction : MonoBehaviour
         promptCanvasGroup.alpha = 1f;
     }
     
-    System.Collections.IEnumerator FadeOutPrompt()
+    IEnumerator FadeOutPrompt()
     {
         float elapsed = 0f;
         while (elapsed < 0.3f)

@@ -1,38 +1,164 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class DormManager : MonoBehaviour
 {
-    private bool valentinaTalked = false;
+    private bool valentinaFirstTalked = false;
     private bool marceloTalked = false;
     private bool elioTalked = false;
+    private bool foodEaten = false;
+    private bool shovelPickedUp = false;
+    private bool photoFound = false;
+    private bool timeAdvanced = false;
+    private string selectedFood = "";
     
     public GameObject eatFoodPrompt;
-    public GameObject foodItem;
-    public GameObject bedInteraction;
+    
+    [Header("Food Items")]
+    public GameObject foodSubSandwich;
+    public GameObject foodChocolateBrioche;
+    public GameObject foodSpiceCupcake;
+    public GameObject foodFrostedCake;
+    private GameObject currentFoodItem;
+    
+    [Header("Valentina Characters")]
+    public GameObject valentinaHallway;
+    public GameObject valentinaRoom;
+    public Transform valentinaRoomPosition;
+    
+    [Header("Thinking Text")]
+    public TextMeshProUGUI thinkingText;
+    public string eatReminderMessage = "I should eat my food before I forget";
+    public string internalMonologue = "Who is this man in the photo? Why is he with my sister?";
+    public string valentinaQuestion = "I wonder if Valentina might know who this is...";
+    
+    [Header("Backyard")]
+    public GameObject graveInteraction;
+    public GameObject shovelInteraction;
+    public GameObject photoObject;
+    public float photoRotationDuration = 3f;
+    
+    [Header("Valentina Second Dialogue")]
+    public RoommateDialogue valentinaSecondDialogue;
+    
+    private CanvasGroup thinkingCanvasGroup;
     
     void Start()
     {
         Time.timeScale = 1f;
-        Debug.Log("DormManager Start - Time.timeScale = " + Time.timeScale);
+        
+        // Get selected food from PlayerPrefs (set by vendor dialogue)
+        selectedFood = PlayerPrefs.GetString("SelectedFood", "");
+        Debug.Log("Player selected food: " + selectedFood);
+        
+        // Show the correct food item based on player's choice
+        ShowCorrectFoodItem();
         
         if (eatFoodPrompt != null)
             eatFoodPrompt.SetActive(false);
         
-        if (foodItem != null)
-            foodItem.SetActive(false);
+        if (graveInteraction != null)
+            graveInteraction.SetActive(false);
         
-        if (bedInteraction != null)
-            bedInteraction.SetActive(false);
+        if (shovelInteraction != null)
+            shovelInteraction.SetActive(false);
+        
+        if (photoObject != null)
+            photoObject.SetActive(false);
+        
+        if (valentinaHallway != null)
+            valentinaHallway.SetActive(true);
+        
+        if (valentinaRoom != null)
+            valentinaRoom.SetActive(false);
+        
+        if (thinkingText != null)
+        {
+            thinkingCanvasGroup = thinkingText.GetComponent<CanvasGroup>();
+            if (thinkingCanvasGroup == null)
+                thinkingCanvasGroup = thinkingText.gameObject.AddComponent<CanvasGroup>();
+            thinkingCanvasGroup.alpha = 0f;
+            thinkingText.gameObject.SetActive(false);
+        }
+    }
+    
+    void ShowCorrectFoodItem()
+    {
+        // Disable all food items first
+        if (foodSubSandwich != null) foodSubSandwich.SetActive(false);
+        if (foodChocolateBrioche != null) foodChocolateBrioche.SetActive(false);
+        if (foodSpiceCupcake != null) foodSpiceCupcake.SetActive(false);
+        if (foodFrostedCake != null) foodFrostedCake.SetActive(false);
+        
+        // Enable the correct one based on player's choice
+        switch (selectedFood)
+        {
+            case "Sub Sandwich":
+                if (foodSubSandwich != null)
+                {
+                    foodSubSandwich.SetActive(true);
+                    currentFoodItem = foodSubSandwich;
+                }
+                break;
+            case "Chocolate Brioche":
+                if (foodChocolateBrioche != null)
+                {
+                    foodChocolateBrioche.SetActive(true);
+                    currentFoodItem = foodChocolateBrioche;
+                }
+                break;
+            case "Spice Cupcake":
+                if (foodSpiceCupcake != null)
+                {
+                    foodSpiceCupcake.SetActive(true);
+                    currentFoodItem = foodSpiceCupcake;
+                }
+                break;
+            case "Frosted Cake":
+                if (foodFrostedCake != null)
+                {
+                    foodFrostedCake.SetActive(true);
+                    currentFoodItem = foodFrostedCake;
+                }
+                break;
+            default:
+                // Default to Sub Sandwich if nothing selected
+                if (foodSubSandwich != null)
+                {
+                    foodSubSandwich.SetActive(true);
+                    currentFoodItem = foodSubSandwich;
+                }
+                break;
+        }
+        
+        Debug.Log("Food item shown: " + selectedFood);
+    }
+    
+    public void ValentinaFirstDialogueComplete()
+    {
+        valentinaFirstTalked = true;
+        ShowEatReminder();
+        
+        if (valentinaHallway != null)
+            valentinaHallway.SetActive(false);
+        
+        if (valentinaRoom != null)
+        {
+            valentinaRoom.SetActive(true);
+            if (valentinaRoomPosition != null)
+            {
+                valentinaRoom.transform.position = valentinaRoomPosition.position;
+                valentinaRoom.transform.rotation = valentinaRoomPosition.rotation;
+            }
+            Debug.Log("Valentina moved to girls room!");
+        }
     }
     
     public void RoommateTalked(string name)
     {
         switch (name)
         {
-            case "Valentina":
-                valentinaTalked = true;
-                break;
             case "Marcelo":
                 marceloTalked = true;
                 break;
@@ -41,44 +167,179 @@ public class DormManager : MonoBehaviour
                 break;
         }
         
-        CheckAllTalked();
+        CheckBackyardAccess();
     }
     
-    public bool IsValentinaTalked()
+    void ShowEatReminder()
     {
-        return valentinaTalked;
-    }
-    
-    public bool AreAllRoommatesTalked()
-    {
-        return valentinaTalked && marceloTalked && elioTalked;
-    }
-    
-    void CheckAllTalked()
-    {
-        if (AreAllRoommatesTalked())
+        StartCoroutine(ShowThinkingText(eatReminderMessage));
+        
+        if (eatFoodPrompt != null)
+            eatFoodPrompt.SetActive(true);
+        
+        // Make the food item interactive
+        if (currentFoodItem != null)
         {
-            Debug.Log("All roommates talked to!");
-            
-            if (eatFoodPrompt != null)
-                eatFoodPrompt.SetActive(true);
-            
-            if (foodItem != null)
-                foodItem.SetActive(true);
+            EatFoodInteraction eatScript = currentFoodItem.GetComponent<EatFoodInteraction>();
+            if (eatScript != null)
+            {
+                eatScript.enabled = true;
+            }
         }
     }
     
     public void EatFood()
     {
+        foodEaten = true;
+        
         if (eatFoodPrompt != null)
             eatFoodPrompt.SetActive(false);
         
-        if (foodItem != null)
-            foodItem.SetActive(false);
+        if (currentFoodItem != null)
+            currentFoodItem.SetActive(false);
         
-        if (bedInteraction != null)
-            bedInteraction.SetActive(true);
+        Debug.Log("Player ate the " + selectedFood + "!");
+    }
+    
+    void CheckBackyardAccess()
+    {
+        if (marceloTalked && elioTalked)
+        {
+            EnableBackyard();
+        }
+    }
+    
+    void EnableBackyard()
+    {
+        Debug.Log("Backyard now accessible");
         
-        Debug.Log("Player ate the food!");
+        if (graveInteraction != null)
+            graveInteraction.SetActive(true);
+        
+        if (shovelInteraction != null)
+            shovelInteraction.SetActive(true);
+    }
+    
+    public void OnShovelPickedUp()
+    {
+        shovelPickedUp = true;
+        
+        if (graveInteraction != null)
+        {
+            GraveInteraction grave = graveInteraction.GetComponent<GraveInteraction>();
+            if (grave != null)
+                grave.SetCanDig(true);
+        }
+    }
+    
+    public void OnPhotoFound()
+    {
+        photoFound = true;
+        
+        if (photoObject != null)
+        {
+            photoObject.SetActive(true);
+            StartCoroutine(RotatePhoto());
+        }
+        
+        StartCoroutine(PhotoFoundSequence());
+    }
+    
+    IEnumerator RotatePhoto()
+    {
+        if (photoObject == null) yield break;
+        
+        Quaternion startRotation = photoObject.transform.rotation;
+        Quaternion endRotation = startRotation * Quaternion.Euler(0, 360f, 0);
+        
+        float elapsed = 0f;
+        
+        while (elapsed < photoRotationDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / photoRotationDuration;
+            photoObject.transform.rotation = Quaternion.Slerp(startRotation, endRotation, t);
+            yield return null;
+        }
+        
+        photoObject.transform.rotation = endRotation;
+        Debug.Log("Photo rotation complete");
+    }
+    
+    IEnumerator PhotoFoundSequence()
+    {
+        yield return StartCoroutine(ShowThinkingText(internalMonologue));
+        
+        yield return new WaitForSeconds(1f);
+        
+        yield return StartCoroutine(ShowThinkingText(valentinaQuestion));
+        
+        if (valentinaSecondDialogue != null)
+        {
+            valentinaSecondDialogue.SetAsSecondDialogue();
+        }
+        
+        AdvanceToAfternoon();
+    }
+    
+    void AdvanceToAfternoon()
+    {
+        timeAdvanced = true;
+        Debug.Log("Time advances to 1pm");
+    }
+    
+    IEnumerator ShowThinkingText(string message)
+    {
+        if (thinkingText == null) yield break;
+        
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = "";
+        
+        float elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            thinkingCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+            yield return null;
+        }
+        thinkingCanvasGroup.alpha = 1f;
+        
+        foreach (char c in message.ToCharArray())
+        {
+            thinkingText.text += c;
+            yield return new WaitForSeconds(0.05f);
+        }
+        
+        yield return new WaitForSeconds(3f);
+        
+        elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            thinkingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+            yield return null;
+        }
+        thinkingCanvasGroup.alpha = 0f;
+        thinkingText.gameObject.SetActive(false);
+    }
+    
+    public bool IsValentinaFirstTalked()
+    {
+        return valentinaFirstTalked;
+    }
+    
+    public bool IsValentinaTalked()
+    {
+        return valentinaFirstTalked;
+    }
+    
+    public bool AreAllRoommatesTalked()
+    {
+        return valentinaFirstTalked && marceloTalked && elioTalked;
+    }
+    
+    public bool HasPhotoFound()
+    {
+        return photoFound;
     }
 }
