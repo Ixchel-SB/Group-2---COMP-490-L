@@ -2,26 +2,29 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 
-public class DormDoorInteraction : MonoBehaviour
+public class InteriorDoorInteraction : MonoBehaviour
 {
     [Header("Door Settings")]
-    public string interactionMessage = "Press F to enter dorm";
+    public string doorName = "Door";
+    public string interactionMessage = "Press F to open door";
     public GameObject interactionPrompt;
-    public Transform insideDormPosition;
+    public Transform teleportPosition; // Where player goes when using door
     public GameObject blackScreenPanel;
     public float fadeDuration = 0.5f;
-    public float waitTime = 3f;
+    public float waitTime = 1f;
     
-    [Header("Block Message")]
-    public TextMeshProUGUI blockMessageText;
-    public string blockMessage = "I don't want to go inside yet. I want to get something to eat first...";
-    public float messageDuration = 3f;
+    [Header("Requirements")]
+    public bool requireValentinaTalked = false; // For Girl/Boy rooms
+    public bool requireAllRoommatesTalked = false; // For Backyard
+    public string blockMessage = "I should talk with Valentina first before going inside";
     
     private bool playerInRange = false;
     private GameObject player;
     private CanvasGroup promptCanvasGroup;
     private bool isTransitioning = false;
     private CanvasGroup blackCanvasGroup;
+    private TextMeshProUGUI blockMessageText;
+    private CanvasGroup blockMessageCanvasGroup;
     
     void Start()
     {
@@ -45,14 +48,16 @@ public class DormDoorInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 0f;
         }
         
-        // Hide block message at start
-        if (blockMessageText != null)
+        // Find the block message UI (reuse the one from DormDoorInteraction or create new)
+        GameObject blockMsgObj = GameObject.Find("DoorBlockMessageText");
+        if (blockMsgObj != null)
         {
-            CanvasGroup cg = blockMessageText.GetComponent<CanvasGroup>();
-            if (cg == null)
-                cg = blockMessageText.gameObject.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            blockMessageText.gameObject.SetActive(false);
+            blockMessageText = blockMsgObj.GetComponent<TextMeshProUGUI>();
+            blockMessageCanvasGroup = blockMsgObj.GetComponent<CanvasGroup>();
+            if (blockMessageCanvasGroup == null)
+                blockMessageCanvasGroup = blockMsgObj.AddComponent<CanvasGroup>();
+            blockMessageCanvasGroup.alpha = 0f;
+            blockMsgObj.SetActive(false);
         }
     }
     
@@ -60,26 +65,51 @@ public class DormDoorInteraction : MonoBehaviour
     {
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
-            // Check if vendor dialogue was completed
-            if (GameProgressManager.Instance != null && GameProgressManager.Instance.IsVendorDialogueCompleted())
+            if (CanUseDoor())
             {
-                StartCoroutine(EnterDorm());
+                StartCoroutine(UseDoor());
             }
             else
             {
-                // Show block message
                 StartCoroutine(ShowBlockMessage());
             }
         }
     }
     
+    bool CanUseDoor()
+    {
+        if (requireValentinaTalked)
+        {
+            DormManager dormManager = FindObjectOfType<DormManager>();
+            if (dormManager == null || !dormManager.IsValentinaTalked())
+            {
+                return false;
+            }
+        }
+        
+        if (requireAllRoommatesTalked)
+        {
+            DormManager dormManager = FindObjectOfType<DormManager>();
+            if (dormManager == null || !dormManager.AreAllRoommatesTalked())
+            {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
     IEnumerator ShowBlockMessage()
     {
-        Debug.Log("Cannot enter dorm - vendor dialogue not completed yet");
+        Debug.Log("Cannot use " + doorName + " - " + blockMessage);
+        
+        if (interactionPrompt != null)
+        {
+            interactionPrompt.SetActive(false);
+        }
         
         if (blockMessageText != null)
         {
-            CanvasGroup cg = blockMessageText.GetComponent<CanvasGroup>();
             blockMessageText.text = blockMessage;
             blockMessageText.gameObject.SetActive(true);
             
@@ -88,31 +118,38 @@ public class DormDoorInteraction : MonoBehaviour
             while (elapsed < 0.5f)
             {
                 elapsed += Time.deltaTime;
-                cg.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                blockMessageCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
                 yield return null;
             }
-            cg.alpha = 1f;
+            blockMessageCanvasGroup.alpha = 1f;
             
             // Wait
-            yield return new WaitForSeconds(messageDuration);
+            yield return new WaitForSeconds(3f);
             
             // Fade out
             elapsed = 0f;
             while (elapsed < 0.5f)
             {
                 elapsed += Time.deltaTime;
-                cg.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                blockMessageCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
                 yield return null;
             }
-            cg.alpha = 0f;
+            blockMessageCanvasGroup.alpha = 0f;
             blockMessageText.gameObject.SetActive(false);
+        }
+        
+        // Re-show prompt after message
+        if (interactionPrompt != null && playerInRange)
+        {
+            yield return new WaitForSeconds(0.5f);
+            interactionPrompt.SetActive(true);
         }
     }
     
-    IEnumerator EnterDorm()
+    IEnumerator UseDoor()
     {
         isTransitioning = true;
-        Debug.Log("Entering dorm...");
+        Debug.Log("Using door: " + doorName);
         
         if (interactionPrompt != null)
         {
@@ -132,15 +169,14 @@ public class DormDoorInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 1f;
         }
         
-        Debug.Log("Screen black - waiting " + waitTime + " seconds");
-        
         yield return new WaitForSeconds(waitTime);
         
-        if (player != null && insideDormPosition != null)
+        // TELEPORT PLAYER
+        if (player != null && teleportPosition != null)
         {
-            player.transform.position = insideDormPosition.position;
-            player.transform.rotation = insideDormPosition.rotation;
-            Debug.Log("Player moved to inside dorm position");
+            player.transform.position = teleportPosition.position;
+            player.transform.rotation = teleportPosition.rotation;
+            Debug.Log("Player teleported to: " + teleportPosition.name);
         }
         
         // FADE BACK IN
@@ -156,7 +192,6 @@ public class DormDoorInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 0f;
         }
         
-        Debug.Log("Fade complete - player inside dorm");
         isTransitioning = false;
     }
     

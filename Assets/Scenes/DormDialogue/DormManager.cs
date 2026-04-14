@@ -13,6 +13,9 @@ public class DormManager : MonoBehaviour
     
     void Start()
     {
+        Time.timeScale = 1f;
+        Debug.Log("DormManager Start - Time.timeScale = " + Time.timeScale);
+        
         if (eatFoodPrompt != null)
             eatFoodPrompt.SetActive(false);
         
@@ -41,9 +44,19 @@ public class DormManager : MonoBehaviour
         CheckAllTalked();
     }
     
+    public bool IsValentinaTalked()
+    {
+        return valentinaTalked;
+    }
+    
+    public bool AreAllRoommatesTalked()
+    {
+        return valentinaTalked && marceloTalked && elioTalked;
+    }
+    
     void CheckAllTalked()
     {
-        if (valentinaTalked && marceloTalked && elioTalked)
+        if (AreAllRoommatesTalked())
         {
             Debug.Log("All roommates talked to!");
             
