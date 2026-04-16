@@ -12,6 +12,7 @@ public class DormManager : MonoBehaviour
     private bool photoFound = false;
     private bool timeAdvanced = false;
     private string selectedFood = "";
+    private bool eatReminderShown = false;
     
     public GameObject eatFoodPrompt;
     
@@ -29,7 +30,8 @@ public class DormManager : MonoBehaviour
     
     [Header("Thinking Text")]
     public TextMeshProUGUI thinkingText;
-    public string eatReminderMessage = "I should eat my food before I forget";
+    public string eatReminderMessage = "I should eat the food I brought before I forget";
+    public string eatReminderDoorMessage = "I should eat my food before exploring more...";
     public string internalMonologue = "Who is this man in the photo? Why is he with my sister?";
     public string valentinaQuestion = "I wonder if Valentina might know who this is...";
     
@@ -48,11 +50,9 @@ public class DormManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         
-        // Get selected food from PlayerPrefs (set by vendor dialogue)
         selectedFood = PlayerPrefs.GetString("SelectedFood", "");
         Debug.Log("Player selected food: " + selectedFood);
         
-        // Show the correct food item based on player's choice
         ShowCorrectFoodItem();
         
         if (eatFoodPrompt != null)
@@ -85,13 +85,11 @@ public class DormManager : MonoBehaviour
     
     void ShowCorrectFoodItem()
     {
-        // Disable all food items first
         if (foodSubSandwich != null) foodSubSandwich.SetActive(false);
         if (foodChocolateBrioche != null) foodChocolateBrioche.SetActive(false);
         if (foodSpiceCupcake != null) foodSpiceCupcake.SetActive(false);
         if (foodFrostedCake != null) foodFrostedCake.SetActive(false);
         
-        // Enable the correct one based on player's choice
         switch (selectedFood)
         {
             case "Sub Sandwich":
@@ -123,7 +121,6 @@ public class DormManager : MonoBehaviour
                 }
                 break;
             default:
-                // Default to Sub Sandwich if nothing selected
                 if (foodSubSandwich != null)
                 {
                     foodSubSandwich.SetActive(true);
@@ -138,11 +135,15 @@ public class DormManager : MonoBehaviour
     public void ValentinaFirstDialogueComplete()
     {
         valentinaFirstTalked = true;
-        ShowEatReminder();
         
+        // Hide hallway Valentina
         if (valentinaHallway != null)
+        {
             valentinaHallway.SetActive(false);
+            Debug.Log("Hallway Valentina disappeared");
+        }
         
+        // Show room Valentina
         if (valentinaRoom != null)
         {
             valentinaRoom.SetActive(true);
@@ -151,7 +152,44 @@ public class DormManager : MonoBehaviour
                 valentinaRoom.transform.position = valentinaRoomPosition.position;
                 valentinaRoom.transform.rotation = valentinaRoomPosition.rotation;
             }
-            Debug.Log("Valentina moved to girls room!");
+        }
+        
+        // Show eat reminder AFTER black screen fades back in
+        StartCoroutine(ShowEatReminderAfterDelay());
+    }
+    
+    IEnumerator ShowEatReminderAfterDelay()
+    {
+        // Wait a moment for the black screen to fully fade back in
+        yield return new WaitForSeconds(0.6f);
+        ShowEatReminder();
+    }
+    
+    void ShowEatReminder()
+    {
+        if (eatReminderShown) return;
+        eatReminderShown = true;
+        
+        StartCoroutine(ShowThinkingText(eatReminderMessage));
+        
+        if (eatFoodPrompt != null)
+            eatFoodPrompt.SetActive(true);
+        
+        if (currentFoodItem != null)
+        {
+            EatFoodInteraction eatScript = currentFoodItem.GetComponent<EatFoodInteraction>();
+            if (eatScript != null)
+            {
+                eatScript.enabled = true;
+            }
+        }
+    }
+    
+    public void ShowDoorEatReminder()
+    {
+        if (!foodEaten && !eatReminderShown)
+        {
+            StartCoroutine(ShowThinkingText(eatReminderDoorMessage));
         }
     }
     
@@ -168,24 +206,6 @@ public class DormManager : MonoBehaviour
         }
         
         CheckBackyardAccess();
-    }
-    
-    void ShowEatReminder()
-    {
-        StartCoroutine(ShowThinkingText(eatReminderMessage));
-        
-        if (eatFoodPrompt != null)
-            eatFoodPrompt.SetActive(true);
-        
-        // Make the food item interactive
-        if (currentFoodItem != null)
-        {
-            EatFoodInteraction eatScript = currentFoodItem.GetComponent<EatFoodInteraction>();
-            if (eatScript != null)
-            {
-                eatScript.enabled = true;
-            }
-        }
     }
     
     public void EatFood()
@@ -253,7 +273,6 @@ public class DormManager : MonoBehaviour
         Quaternion endRotation = startRotation * Quaternion.Euler(0, 360f, 0);
         
         float elapsed = 0f;
-        
         while (elapsed < photoRotationDuration)
         {
             elapsed += Time.deltaTime;
@@ -263,15 +282,12 @@ public class DormManager : MonoBehaviour
         }
         
         photoObject.transform.rotation = endRotation;
-        Debug.Log("Photo rotation complete");
     }
     
     IEnumerator PhotoFoundSequence()
     {
         yield return StartCoroutine(ShowThinkingText(internalMonologue));
-        
         yield return new WaitForSeconds(1f);
-        
         yield return StartCoroutine(ShowThinkingText(valentinaQuestion));
         
         if (valentinaSecondDialogue != null)
@@ -323,14 +339,14 @@ public class DormManager : MonoBehaviour
         thinkingText.gameObject.SetActive(false);
     }
     
-    public bool IsValentinaFirstTalked()
+    public bool IsValentinaTalked()
     {
         return valentinaFirstTalked;
     }
     
-    public bool IsValentinaTalked()
+    public bool HasFoodEaten()
     {
-        return valentinaFirstTalked;
+        return foodEaten;
     }
     
     public bool AreAllRoommatesTalked()

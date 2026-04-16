@@ -28,29 +28,49 @@ public class RoommateDialogue : MonoBehaviour
     public TextMeshProUGUI dialogueText;
     public TextMeshProUGUI continueText;
     
+    [Header("Transition Settings")]
+    public GameObject blackScreenPanel;
+    public float fadeDuration = 0.5f;
+    public float waitAfterDialogue = 1f;
+    
     private int currentLine = 0;
     private bool isDialogueActive = false;
     private bool isTyping = false;
     private Coroutine typingCoroutine;
     
     private GameObject player;
+    private GameObject playerModel;
     private MonoBehaviour playerController;
     private Vector3 originalCameraPos;
     private Quaternion originalCameraRot;
     private bool hasTalked = false;
+    private CanvasGroup blackCanvasGroup;
+    private bool isTransitioning = false;
     
     void Start()
     {
-        Time.timeScale = 1f;
-        
         dialoguePanel.SetActive(false);
         if (continueText != null)
             continueText.text = "Press F to continue";
+        
+        if (blackScreenPanel != null)
+        {
+            blackCanvasGroup = blackScreenPanel.GetComponent<CanvasGroup>();
+            if (blackCanvasGroup == null)
+                blackCanvasGroup = blackScreenPanel.AddComponent<CanvasGroup>();
+            blackCanvasGroup.alpha = 0f;
+        }
         
         player = GameObject.FindGameObjectWithTag("Player");
         
         if (player != null)
         {
+            SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skinnedMesh != null)
+                playerModel = skinnedMesh.gameObject;
+            else
+                playerModel = player;
+            
             playerController = player.GetComponent<MonoBehaviour>();
             if (playerController == null)
             {
@@ -81,6 +101,9 @@ public class RoommateDialogue : MonoBehaviour
         currentLine = 0;
         isDialogueActive = true;
         dialoguePanel.SetActive(true);
+        
+        if (playerModel != null)
+            playerModel.SetActive(false);
         
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -151,13 +174,34 @@ public class RoommateDialogue : MonoBehaviour
         dialoguePanel.SetActive(false);
         if (continueText != null) continueText.gameObject.SetActive(false);
         
+        StartCoroutine(TransitionSequence());
+    }
+    
+    IEnumerator TransitionSequence()
+    {
+        if (isTransitioning) yield break;
+        isTransitioning = true;
+        
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 1f;
+        }
+        
+        Debug.Log("Screen black - processing end of dialogue");
+        
+        yield return new WaitForSecondsRealtime(waitAfterDialogue);
+        
         if (playerController != null)
             playerController.enabled = true;
         if (playerFollowCamera != null)
             playerFollowCamera.enabled = true;
-        
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
         
         if (mainCamera != null)
         {
@@ -165,14 +209,38 @@ public class RoommateDialogue : MonoBehaviour
             mainCamera.transform.rotation = originalCameraRot;
         }
         
+        if (playerModel != null)
+            playerModel.SetActive(true);
+        
         hasTalked = true;
         
         DormManager dormManager = FindObjectOfType<DormManager>();
         if (dormManager != null)
         {
             dormManager.RoommateTalked(roommateName);
+            
+            if (roommateName == "Valentina")
+            {
+                dormManager.ValentinaFirstDialogueComplete();
+            }
         }
         
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 0f;
+        }
+        
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        
+        isTransitioning = false;
         Debug.Log(roommateName + " dialogue ended");
     }
 }

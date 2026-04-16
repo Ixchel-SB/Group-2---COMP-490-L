@@ -5,71 +5,70 @@ using System.Collections;
 public class DoorBlockMessage : MonoBehaviour
 {
     public TextMeshProUGUI thinkingText;
-    public float typingSpeed = 0.05f;
-    public float displayDuration = 3f;
+    public float displayDuration = 2f;
     
     private CanvasGroup canvasGroup;
+    private bool isShowing = false;
     
     void Start()
     {
-        // Make sure the GameObject is active
-        gameObject.SetActive(true);
-        
         if (thinkingText != null)
         {
             canvasGroup = thinkingText.GetComponent<CanvasGroup>();
             if (canvasGroup == null)
                 canvasGroup = thinkingText.gameObject.AddComponent<CanvasGroup>();
             canvasGroup.alpha = 0f;
-            thinkingText.gameObject.SetActive(true);
+            thinkingText.gameObject.SetActive(false);
+        }
+        else
+        {
+            Debug.LogError("DoorBlockMessage: thinkingText is not assigned!");
         }
     }
     
     public void ShowMessage(string message)
     {
-        // Ensure the GameObject is active before starting coroutine
-        if (!gameObject.activeSelf)
-        {
-            gameObject.SetActive(true);
-        }
-        
+        if (isShowing) return;
         StartCoroutine(DisplayMessage(message));
     }
     
     IEnumerator DisplayMessage(string message)
     {
+        isShowing = true;
+        
         if (thinkingText == null) 
         {
-            Debug.LogError("DoorBlockMessage: thinkingText is not assigned!");
+            isShowing = false;
             yield break;
         }
         
-        thinkingText.text = "";
+        thinkingText.text = message;
+        thinkingText.gameObject.SetActive(true);
         
+        // Fade in
         float elapsed = 0f;
-        while (elapsed < 0.5f)
+        while (elapsed < 0.3f)
         {
             elapsed += Time.deltaTime;
-            canvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+            canvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.3f);
             yield return null;
         }
         canvasGroup.alpha = 1f;
         
-        foreach (char c in message.ToCharArray())
-        {
-            thinkingText.text += c;
-            yield return new WaitForSeconds(typingSpeed);
-        }
-        
+        // Wait
         yield return new WaitForSeconds(displayDuration);
         
+        // Fade out
         elapsed = 0f;
-        while (elapsed < 0.5f)
+        while (elapsed < 0.3f)
         {
             elapsed += Time.deltaTime;
-            canvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+            canvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.3f);
             yield return null;
         }
         canvasGroup.alpha = 0f;
+        thinkingText.gameObject.SetActive(false);
+        
+        isShowing = false;
     }
 }

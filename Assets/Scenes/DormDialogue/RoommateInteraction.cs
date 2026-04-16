@@ -8,11 +8,12 @@ public class RoommateInteraction : MonoBehaviour
     
     private bool playerInRange = false;
     private bool hasInteracted = false;
-    private bool hasNotified = false;
     private CanvasGroup promptCanvasGroup;
     
     void Start()
     {
+        Debug.Log("RoommateInteraction started on: " + gameObject.name);
+        
         if (interactionPrompt != null)
         {
             promptCanvasGroup = interactionPrompt.GetComponent<CanvasGroup>();
@@ -20,6 +21,16 @@ public class RoommateInteraction : MonoBehaviour
                 promptCanvasGroup = interactionPrompt.AddComponent<CanvasGroup>();
             promptCanvasGroup.alpha = 0f;
             interactionPrompt.SetActive(false);
+            Debug.Log("Interaction prompt initialized");
+        }
+        else
+        {
+            Debug.LogWarning("Interaction Prompt is not assigned on " + gameObject.name);
+        }
+        
+        if (roommateDialogue == null)
+        {
+            Debug.LogWarning("Roommate Dialogue is not assigned on " + gameObject.name);
         }
     }
     
@@ -27,6 +38,7 @@ public class RoommateInteraction : MonoBehaviour
     {
         if (playerInRange && !hasInteracted && Input.GetKeyDown(KeyCode.F))
         {
+            Debug.Log("F key pressed - interacting with " + gameObject.name);
             Interact();
         }
     }
@@ -34,11 +46,16 @@ public class RoommateInteraction : MonoBehaviour
     void Interact()
     {
         hasInteracted = true;
+        Debug.Log("Interacting with " + gameObject.name);
         
         if (roommateDialogue != null)
         {
-            StartCoroutine(WaitForDialogueEnd());
             roommateDialogue.StartDialogue();
+            Debug.Log("Dialogue started");
+        }
+        else
+        {
+            Debug.LogError("RoommateDialogue is null on " + gameObject.name);
         }
         
         if (interactionPrompt != null)
@@ -47,31 +64,14 @@ public class RoommateInteraction : MonoBehaviour
         }
     }
     
-    IEnumerator WaitForDialogueEnd()
-    {
-        // Wait while dialogue is active
-        while (roommateDialogue != null && roommateDialogue.IsDialogueActive())
-        {
-            yield return null;
-        }
-        
-        // Now notify DormManager after dialogue ends
-        if (roommateDialogue != null && roommateDialogue.roommateName == "Valentina" && !hasNotified)
-        {
-            hasNotified = true;
-            DormManager dormManager = FindObjectOfType<DormManager>();
-            if (dormManager != null)
-            {
-                dormManager.ValentinaFirstDialogueComplete();
-            }
-        }
-    }
-    
     void OnTriggerEnter(Collider other)
     {
+        Debug.Log("Trigger entered by: " + other.name + " with tag: " + other.tag);
+        
         if (other.CompareTag("Player") && !hasInteracted)
         {
             playerInRange = true;
+            Debug.Log("Player in range - should show prompt");
             if (interactionPrompt != null)
             {
                 interactionPrompt.SetActive(true);
@@ -85,6 +85,7 @@ public class RoommateInteraction : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
+            Debug.Log("Player left range");
             if (interactionPrompt != null)
             {
                 StartCoroutine(FadeOutPrompt());
@@ -94,6 +95,8 @@ public class RoommateInteraction : MonoBehaviour
     
     IEnumerator FadeInPrompt()
     {
+        if (promptCanvasGroup == null) yield break;
+        
         float elapsed = 0f;
         while (elapsed < 0.3f)
         {
@@ -102,10 +105,13 @@ public class RoommateInteraction : MonoBehaviour
             yield return null;
         }
         promptCanvasGroup.alpha = 1f;
+        Debug.Log("Prompt faded in");
     }
     
     IEnumerator FadeOutPrompt()
     {
+        if (promptCanvasGroup == null) yield break;
+        
         float elapsed = 0f;
         while (elapsed < 0.3f)
         {
@@ -115,5 +121,6 @@ public class RoommateInteraction : MonoBehaviour
         }
         promptCanvasGroup.alpha = 0f;
         interactionPrompt.SetActive(false);
+        Debug.Log("Prompt faded out");
     }
 }
