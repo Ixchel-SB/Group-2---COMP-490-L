@@ -136,14 +136,9 @@ public class DormManager : MonoBehaviour
     {
         valentinaFirstTalked = true;
         
-        // Hide hallway Valentina
         if (valentinaHallway != null)
-        {
             valentinaHallway.SetActive(false);
-            Debug.Log("Hallway Valentina disappeared");
-        }
         
-        // Show room Valentina
         if (valentinaRoom != null)
         {
             valentinaRoom.SetActive(true);
@@ -154,13 +149,11 @@ public class DormManager : MonoBehaviour
             }
         }
         
-        // Show eat reminder AFTER black screen fades back in
         StartCoroutine(ShowEatReminderAfterDelay());
     }
     
     IEnumerator ShowEatReminderAfterDelay()
     {
-        // Wait a moment for the black screen to fully fade back in
         yield return new WaitForSeconds(0.6f);
         ShowEatReminder();
     }
@@ -231,18 +224,19 @@ public class DormManager : MonoBehaviour
     
     void EnableBackyard()
     {
-        Debug.Log("Backyard now accessible");
-        
-        if (graveInteraction != null)
-            graveInteraction.SetActive(true);
+        Debug.Log("Backyard now accessible - shovel and grave enabled");
         
         if (shovelInteraction != null)
             shovelInteraction.SetActive(true);
+        
+        if (graveInteraction != null)
+            graveInteraction.SetActive(true);
     }
     
     public void OnShovelPickedUp()
     {
         shovelPickedUp = true;
+        Debug.Log("Shovel picked up - can now dig at grave");
         
         if (graveInteraction != null)
         {
@@ -255,11 +249,16 @@ public class DormManager : MonoBehaviour
     public void OnPhotoFound()
     {
         photoFound = true;
+        Debug.Log("OnPhotoFound called - showing photo and starting sequence");
         
         if (photoObject != null)
         {
             photoObject.SetActive(true);
             StartCoroutine(RotatePhoto());
+        }
+        else
+        {
+            Debug.LogError("PhotoObject is null in DormManager!");
         }
         
         StartCoroutine(PhotoFoundSequence());
@@ -282,6 +281,7 @@ public class DormManager : MonoBehaviour
         }
         
         photoObject.transform.rotation = endRotation;
+        Debug.Log("Photo rotation complete");
     }
     
     IEnumerator PhotoFoundSequence()
@@ -290,18 +290,20 @@ public class DormManager : MonoBehaviour
         yield return new WaitForSeconds(1f);
         yield return StartCoroutine(ShowThinkingText(valentinaQuestion));
         
+        // Time advances to 2pm
+        AdvanceToAfternoon();
+        
         if (valentinaSecondDialogue != null)
         {
             valentinaSecondDialogue.SetAsSecondDialogue();
+            Debug.Log("Valentina's second dialogue is now available in girls room");
         }
-        
-        AdvanceToAfternoon();
     }
     
     void AdvanceToAfternoon()
     {
         timeAdvanced = true;
-        Debug.Log("Time advances to 1pm");
+        Debug.Log("Time advances to 2pm - Valentina waiting in girls room");
     }
     
     IEnumerator ShowThinkingText(string message)
