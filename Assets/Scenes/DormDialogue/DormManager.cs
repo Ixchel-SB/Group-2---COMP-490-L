@@ -10,9 +10,12 @@ public class DormManager : MonoBehaviour
     private bool foodEaten = false;
     private bool shovelPickedUp = false;
     private bool photoFound = false;
+    private bool photoInspected = false;
     private bool timeAdvanced = false;
     private string selectedFood = "";
     private bool eatReminderShown = false;
+    private bool isPhotoVisible = false;
+    private Coroutine rotationCoroutine;
     
     public GameObject eatFoodPrompt;
     
@@ -32,23 +35,55 @@ public class DormManager : MonoBehaviour
     public TextMeshProUGUI thinkingText;
     public string eatReminderMessage = "I should eat the food I brought before I forget";
     public string eatReminderDoorMessage = "I should eat my food before exploring more...";
-    public string internalMonologue = "Who is this man in the photo? Why is he with my sister?";
-    public string valentinaQuestion = "I wonder if Valentina might know who this is...";
+    public string photoFoundMessage = "Who is that man with my sister... I wonder if Valentina knows something about this.";
+    public float thinkingTextDuration = 5f;
     
     [Header("Backyard")]
     public GameObject graveInteraction;
     public GameObject shovelInteraction;
     public GameObject photoObject;
-    public float photoRotationDuration = 3f;
+    public float photoDistanceFromCamera = 1.5f;
+    public GameObject blackScreenPanel;
     
     [Header("Valentina Second Dialogue")]
     public RoommateDialogue valentinaSecondDialogue;
     
     private CanvasGroup thinkingCanvasGroup;
+    private bool waitingForPhotoInspection = false;
+    private ShovelInteraction shovelScript;
+    private GameObject player;
+    private MonoBehaviour playerController;
+    private Camera mainCamera;
+    private Vector3 originalPhotoPos;
+    private Quaternion originalPhotoRot;
+    private Vector3 originalPhotoScale;
+    private CanvasGroup blackCanvasGroup;
     
     void Start()
     {
         Time.timeScale = 1f;
+        
+        player = GameObject.FindGameObjectWithTag("Player");
+        mainCamera = Camera.main;
+        
+        if (player != null)
+        {
+            playerController = player.GetComponent<MonoBehaviour>();
+            if (playerController == null)
+            {
+                Transform playerArmature = player.transform.Find("PlayerArmature");
+                if (playerArmature != null)
+                    playerController = playerArmature.GetComponent<MonoBehaviour>();
+            }
+        }
+        
+        if (blackScreenPanel != null)
+        {
+            blackCanvasGroup = blackScreenPanel.GetComponent<CanvasGroup>();
+            if (blackCanvasGroup == null)
+                blackCanvasGroup = blackScreenPanel.AddComponent<CanvasGroup>();
+            blackCanvasGroup.alpha = 0f;
+        }
         
         selectedFood = PlayerPrefs.GetString("SelectedFood", "");
         Debug.Log("Player selected food: " + selectedFood);
@@ -59,13 +94,21 @@ public class DormManager : MonoBehaviour
             eatFoodPrompt.SetActive(false);
         
         if (graveInteraction != null)
-            graveInteraction.SetActive(false);
+            graveInteraction.SetActive(true);
         
         if (shovelInteraction != null)
-            shovelInteraction.SetActive(false);
+        {
+            shovelInteraction.SetActive(true);
+            shovelScript = shovelInteraction.GetComponent<ShovelInteraction>();
+        }
         
         if (photoObject != null)
+        {
             photoObject.SetActive(false);
+            originalPhotoPos = photoObject.transform.position;
+            originalPhotoRot = photoObject.transform.rotation;
+            originalPhotoScale = photoObject.transform.localScale;
+        }
         
         if (valentinaHallway != null)
             valentinaHallway.SetActive(true);
@@ -81,6 +124,52 @@ public class DormManager : MonoBehaviour
             thinkingCanvasGroup.alpha = 0f;
             thinkingText.gameObject.SetActive(false);
         }
+    }
+    
+    void Update()
+    {
+        if (waitingForPhotoInspection && Input.GetKeyDown(KeyCode.F))
+        {
+            Debug.Log("F pressed - completing photo inspection");
+            CompletePhotoInspection();
+        }
+    }
+    
+    public void ShowThinkingTextOnBlackScreen(string message)
+    {
+        StartCoroutine(DisplayThinkingTextOnBlackScreen(message));
+    }
+    
+    IEnumerator DisplayThinkingTextOnBlackScreen(string message)
+    {
+        if (thinkingText == null) yield break;
+        
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = message;
+        thinkingCanvasGroup.alpha = 1f;
+        
+        // Text stays for 10 seconds (handled by the black screen timer in shovel)
+        yield return new WaitForSeconds(10f);
+        
+        thinkingText.gameObject.SetActive(false);
+    }
+    
+    public void ShowThinkingText(string message)
+    {
+        StartCoroutine(DisplayThinkingText(message));
+    }
+    
+    IEnumerator DisplayThinkingText(string message)
+    {
+        if (thinkingText == null) yield break;
+        
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = message;
+        thinkingCanvasGroup.alpha = 1f;
+        
+        yield return new WaitForSeconds(thinkingTextDuration);
+        
+        thinkingText.gameObject.SetActive(false);
     }
     
     void ShowCorrectFoodItem()
@@ -163,7 +252,7 @@ public class DormManager : MonoBehaviour
         if (eatReminderShown) return;
         eatReminderShown = true;
         
-        StartCoroutine(ShowThinkingText(eatReminderMessage));
+        StartCoroutine(ShowThinkingTextWithFade(eatReminderMessage));
         
         if (eatFoodPrompt != null)
             eatFoodPrompt.SetActive(true);
@@ -182,12 +271,14 @@ public class DormManager : MonoBehaviour
     {
         if (!foodEaten && !eatReminderShown)
         {
-            StartCoroutine(ShowThinkingText(eatReminderDoorMessage));
+            StartCoroutine(ShowThinkingTextWithFade(eatReminderDoorMessage));
         }
     }
     
     public void RoommateTalked(string name)
     {
+        Debug.Log($"RoommateTalked called: {name}");
+        
         switch (name)
         {
             case "Marcelo":
@@ -197,8 +288,6 @@ public class DormManager : MonoBehaviour
                 elioTalked = true;
                 break;
         }
-        
-        CheckBackyardAccess();
     }
     
     public void EatFood()
@@ -214,99 +303,139 @@ public class DormManager : MonoBehaviour
         Debug.Log("Player ate the " + selectedFood + "!");
     }
     
-    void CheckBackyardAccess()
+    public void ShowPhotoForInspection()
     {
-        if (marceloTalked && elioTalked)
+        Debug.Log("ShowPhotoForInspection called - screen should be normal");
+        
+        // Make sure black screen is NOT active
+        if (blackCanvasGroup != null)
         {
-            EnableBackyard();
+            blackCanvasGroup.alpha = 0f;
         }
-    }
-    
-    void EnableBackyard()
-    {
-        Debug.Log("Backyard now accessible - shovel and grave enabled");
         
-        if (shovelInteraction != null)
-            shovelInteraction.SetActive(true);
-        
-        if (graveInteraction != null)
-            graveInteraction.SetActive(true);
-    }
-    
-    public void OnShovelPickedUp()
-    {
-        shovelPickedUp = true;
-        Debug.Log("Shovel picked up - can now dig at grave");
-        
-        if (graveInteraction != null)
+        // Freeze player movement
+        if (playerController != null)
         {
-            GraveInteraction grave = graveInteraction.GetComponent<GraveInteraction>();
-            if (grave != null)
-                grave.SetCanDig(true);
+            playerController.enabled = false;
+            Debug.Log("Player frozen");
         }
-    }
-    
-    public void OnPhotoFound()
-    {
-        photoFound = true;
-        Debug.Log("OnPhotoFound called - showing photo and starting sequence");
         
-        if (photoObject != null)
+        // Show and position photo
+        if (photoObject != null && mainCamera != null)
         {
+            // Store original values
+            originalPhotoPos = photoObject.transform.position;
+            originalPhotoRot = photoObject.transform.rotation;
+            originalPhotoScale = photoObject.transform.localScale;
+            
+            // Position photo in front of camera
+            Vector3 photoPosition = mainCamera.transform.position + mainCamera.transform.forward * photoDistanceFromCamera;
+            photoObject.transform.position = photoPosition;
+            photoObject.transform.LookAt(mainCamera.transform);
+            photoObject.transform.localScale = originalPhotoScale * 1.5f;
+            
             photoObject.SetActive(true);
-            StartCoroutine(RotatePhoto());
+            Debug.Log("Photo activated on NORMAL screen at: " + photoPosition);
+            
+            // Start continuous rotation
+            isPhotoVisible = true;
+            rotationCoroutine = StartCoroutine(ContinuousRotatePhoto());
         }
         else
         {
-            Debug.LogError("PhotoObject is null in DormManager!");
+            Debug.LogError("PhotoObject or MainCamera is null!");
+            CompletePhotoInspection();
+            return;
         }
         
-        StartCoroutine(PhotoFoundSequence());
+        waitingForPhotoInspection = true;
+        
+        // Show prompt
+        if (thinkingText != null)
+        {
+            StartCoroutine(ShowTempText("Press F to continue", 0.5f));
+        }
     }
     
-    IEnumerator RotatePhoto()
+    IEnumerator ContinuousRotatePhoto()
     {
-        if (photoObject == null) yield break;
-        
-        Quaternion startRotation = photoObject.transform.rotation;
-        Quaternion endRotation = startRotation * Quaternion.Euler(0, 360f, 0);
-        
-        float elapsed = 0f;
-        while (elapsed < photoRotationDuration)
+        Debug.Log("Starting continuous photo rotation");
+        while (isPhotoVisible && photoObject != null && photoObject.activeSelf)
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / photoRotationDuration;
-            photoObject.transform.rotation = Quaternion.Slerp(startRotation, endRotation, t);
+            photoObject.transform.Rotate(0, 90f * Time.deltaTime, 0);
             yield return null;
         }
+        Debug.Log("Photo rotation stopped");
+    }
+    
+    IEnumerator ShowTempText(string message, float duration)
+    {
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = message;
+        thinkingCanvasGroup.alpha = 1f;
+        yield return new WaitForSeconds(duration);
+        thinkingText.gameObject.SetActive(false);
+    }
+    
+    void CompletePhotoInspection()
+    {
+        Debug.Log("CompletePhotoInspection called");
+        waitingForPhotoInspection = false;
+        isPhotoVisible = false;
+        photoInspected = true;
         
-        photoObject.transform.rotation = endRotation;
-        Debug.Log("Photo rotation complete");
+        // Stop rotation coroutine
+        if (rotationCoroutine != null)
+        {
+            StopCoroutine(rotationCoroutine);
+            rotationCoroutine = null;
+        }
+        
+        // Hide photo and restore position
+        if (photoObject != null)
+        {
+            photoObject.SetActive(false);
+            photoObject.transform.position = originalPhotoPos;
+            photoObject.transform.rotation = originalPhotoRot;
+            photoObject.transform.localScale = originalPhotoScale;
+            Debug.Log("Photo hidden and restored");
+        }
+        
+        // Unfreeze player
+        if (playerController != null)
+        {
+            playerController.enabled = true;
+            Debug.Log("Player unfrozen");
+        }
+        
+        // Complete shovel pickup
+        if (shovelScript != null)
+            shovelScript.CompletePickup();
+        
+        // Show thinking text (5 seconds)
+        StartCoroutine(PhotoFoundSequence());
     }
     
     IEnumerator PhotoFoundSequence()
     {
-        yield return StartCoroutine(ShowThinkingText(internalMonologue));
-        yield return new WaitForSeconds(1f);
-        yield return StartCoroutine(ShowThinkingText(valentinaQuestion));
+        yield return StartCoroutine(ShowThinkingTextWithFade(photoFoundMessage, thinkingTextDuration));
         
-        // Time advances to 2pm
         AdvanceToAfternoon();
         
         if (valentinaSecondDialogue != null)
         {
             valentinaSecondDialogue.SetAsSecondDialogue();
-            Debug.Log("Valentina's second dialogue is now available in girls room");
+            Debug.Log("Valentina's second dialogue is now available");
         }
     }
     
     void AdvanceToAfternoon()
     {
         timeAdvanced = true;
-        Debug.Log("Time advances to 2pm - Valentina waiting in girls room");
+        Debug.Log("Time advances to 2pm");
     }
     
-    IEnumerator ShowThinkingText(string message)
+    IEnumerator ShowThinkingTextWithFade(string message, float duration = 3f)
     {
         if (thinkingText == null) yield break;
         
@@ -328,7 +457,7 @@ public class DormManager : MonoBehaviour
             yield return new WaitForSeconds(0.05f);
         }
         
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(duration);
         
         elapsed = 0f;
         while (elapsed < 0.5f)
@@ -356,8 +485,8 @@ public class DormManager : MonoBehaviour
         return valentinaFirstTalked && marceloTalked && elioTalked;
     }
     
-    public bool HasPhotoFound()
+    public bool HasPhotoInspected()
     {
-        return photoFound;
+        return photoInspected;
     }
 }

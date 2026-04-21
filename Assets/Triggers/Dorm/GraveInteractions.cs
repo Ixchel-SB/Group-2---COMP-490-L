@@ -9,7 +9,9 @@ public class GraveInteraction : MonoBehaviour
     
     void Start()
     {
-        Debug.Log("GraveInteraction started - canDig: " + canDig);
+        // Grave is always visible
+        gameObject.SetActive(true);
+        Debug.Log("GraveInteraction started - grave is VISIBLE");
         
         if (interactionPrompt != null)
         {
@@ -25,12 +27,6 @@ public class GraveInteraction : MonoBehaviour
     {
         canDig = can;
         Debug.Log("Grave canDig set to: " + canDig);
-        
-        // If canDig is true and player is in range, show prompt
-        if (canDig && interactionPrompt != null)
-        {
-            // Prompt will be shown on trigger enter
-        }
     }
     
     void Update()
