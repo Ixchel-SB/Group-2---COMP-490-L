@@ -15,7 +15,6 @@ public class DormManager : MonoBehaviour
     private string selectedFood = "";
     private bool eatReminderShown = false;
     private bool isPhotoVisible = false;
-    private Coroutine rotationCoroutine;
     
     public GameObject eatFoodPrompt;
     
@@ -36,13 +35,14 @@ public class DormManager : MonoBehaviour
     public string eatReminderMessage = "I should eat the food I brought before I forget";
     public string eatReminderDoorMessage = "I should eat my food before exploring more...";
     public string photoFoundMessage = "Who is that man with my sister... I wonder if Valentina knows something about this.";
-    public float thinkingTextDuration = 5f;
+    public float thinkingTextDuration = 3f;
     
     [Header("Backyard")]
     public GameObject graveInteraction;
     public GameObject shovelInteraction;
     public GameObject photoObject;
-    public float photoDistanceFromCamera = 1.5f;
+    public float photoDistanceFromCamera = 2f;
+    public float photoRotationSpeed = 2f;
     public GameObject blackScreenPanel;
     
     [Header("Valentina Second Dialogue")]
@@ -52,12 +52,15 @@ public class DormManager : MonoBehaviour
     private bool waitingForPhotoInspection = false;
     private ShovelInteraction shovelScript;
     private GameObject player;
+    private GameObject playerModel;
     private MonoBehaviour playerController;
     private Camera mainCamera;
     private Vector3 originalPhotoPos;
     private Quaternion originalPhotoRot;
     private Vector3 originalPhotoScale;
     private CanvasGroup blackCanvasGroup;
+    private float rotationX = 0f;
+    private float rotationY = 0f;
     
     void Start()
     {
@@ -68,6 +71,13 @@ public class DormManager : MonoBehaviour
         
         if (player != null)
         {
+            // Find player model for hiding
+            SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skinnedMesh != null)
+                playerModel = skinnedMesh.gameObject;
+            else
+                playerModel = player;
+            
             playerController = player.GetComponent<MonoBehaviour>();
             if (playerController == null)
             {
@@ -128,10 +138,29 @@ public class DormManager : MonoBehaviour
     
     void Update()
     {
-        if (waitingForPhotoInspection && Input.GetKeyDown(KeyCode.F))
+        if (waitingForPhotoInspection)
         {
-            Debug.Log("F pressed - completing photo inspection");
-            CompletePhotoInspection();
+            // Handle rotation with mouse movement (no click needed)
+            Vector2 mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+            
+            if (mouseDelta != Vector2.zero && photoObject != null)
+            {
+                rotationY += mouseDelta.x * photoRotationSpeed;
+                rotationX += -mouseDelta.y * photoRotationSpeed;
+                
+                // Clamp vertical rotation to prevent flipping
+                rotationX = Mathf.Clamp(rotationX, -90f, 90f);
+                
+                // Apply rotation
+                photoObject.transform.rotation = Quaternion.Euler(rotationX, rotationY, 0);
+            }
+            
+            // Press F to continue
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                Debug.Log("F pressed - completing photo inspection");
+                StartCoroutine(CompletePhotoInspection());
+            }
         }
     }
     
@@ -148,8 +177,8 @@ public class DormManager : MonoBehaviour
         thinkingText.text = message;
         thinkingCanvasGroup.alpha = 1f;
         
-        // Text stays for 10 seconds (handled by the black screen timer in shovel)
-        yield return new WaitForSeconds(10f);
+        // Text stays for 3 seconds
+        yield return new WaitForSeconds(3f);
         
         thinkingText.gameObject.SetActive(false);
     }
@@ -305,12 +334,23 @@ public class DormManager : MonoBehaviour
     
     public void ShowPhotoForInspection()
     {
-        Debug.Log("ShowPhotoForInspection called - screen should be normal");
+        Debug.Log("ShowPhotoForInspection called");
+        
+        // Reset rotation values
+        rotationX = 0f;
+        rotationY = 0f;
         
         // Make sure black screen is NOT active
         if (blackCanvasGroup != null)
         {
             blackCanvasGroup.alpha = 0f;
+        }
+        
+        // Hide player character
+        if (playerModel != null)
+        {
+            playerModel.SetActive(false);
+            Debug.Log("Player character hidden");
         }
         
         // Freeze player movement
@@ -328,44 +368,35 @@ public class DormManager : MonoBehaviour
             originalPhotoRot = photoObject.transform.rotation;
             originalPhotoScale = photoObject.transform.localScale;
             
-            // Position photo in front of camera
+            // Position photo closer to camera (2 units away)
             Vector3 photoPosition = mainCamera.transform.position + mainCamera.transform.forward * photoDistanceFromCamera;
             photoObject.transform.position = photoPosition;
             photoObject.transform.LookAt(mainCamera.transform);
             photoObject.transform.localScale = originalPhotoScale * 1.5f;
             
-            photoObject.SetActive(true);
-            Debug.Log("Photo activated on NORMAL screen at: " + photoPosition);
+            // Store initial rotation
+            Vector3 initialEuler = photoObject.transform.eulerAngles;
+            rotationX = initialEuler.x;
+            rotationY = initialEuler.y;
             
-            // Start continuous rotation
-            isPhotoVisible = true;
-            rotationCoroutine = StartCoroutine(ContinuousRotatePhoto());
+            photoObject.SetActive(true);
+            Debug.Log($"Photo activated at distance {photoDistanceFromCamera} from camera: {photoPosition}");
         }
         else
         {
             Debug.LogError("PhotoObject or MainCamera is null!");
-            CompletePhotoInspection();
+            StartCoroutine(CompletePhotoInspection());
             return;
         }
         
         waitingForPhotoInspection = true;
+        isPhotoVisible = true;
         
         // Show prompt
         if (thinkingText != null)
         {
-            StartCoroutine(ShowTempText("Press F to continue", 0.5f));
+            StartCoroutine(ShowTempText("Move your mouse to rotate the photo\nPress F to continue", 2f));
         }
-    }
-    
-    IEnumerator ContinuousRotatePhoto()
-    {
-        Debug.Log("Starting continuous photo rotation");
-        while (isPhotoVisible && photoObject != null && photoObject.activeSelf)
-        {
-            photoObject.transform.Rotate(0, 90f * Time.deltaTime, 0);
-            yield return null;
-        }
-        Debug.Log("Photo rotation stopped");
     }
     
     IEnumerator ShowTempText(string message, float duration)
@@ -377,19 +408,12 @@ public class DormManager : MonoBehaviour
         thinkingText.gameObject.SetActive(false);
     }
     
-    void CompletePhotoInspection()
+    IEnumerator CompletePhotoInspection()
     {
-        Debug.Log("CompletePhotoInspection called");
+        Debug.Log("CompletePhotoInspection called - starting black screen transition");
+        
         waitingForPhotoInspection = false;
         isPhotoVisible = false;
-        photoInspected = true;
-        
-        // Stop rotation coroutine
-        if (rotationCoroutine != null)
-        {
-            StopCoroutine(rotationCoroutine);
-            rotationCoroutine = null;
-        }
         
         // Hide photo and restore position
         if (photoObject != null)
@@ -399,6 +423,59 @@ public class DormManager : MonoBehaviour
             photoObject.transform.rotation = originalPhotoRot;
             photoObject.transform.localScale = originalPhotoScale;
             Debug.Log("Photo hidden and restored");
+        }
+        
+        // Fade to black
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 1f;
+            Debug.Log("Faded to black for thinking text");
+        }
+        
+        // Show thinking text on black screen for 3 seconds
+        if (thinkingText != null)
+        {
+            thinkingText.gameObject.SetActive(true);
+            thinkingText.text = photoFoundMessage;
+            thinkingCanvasGroup.alpha = 1f;
+            Debug.Log("Showing thinking text on black screen: " + photoFoundMessage);
+        }
+        
+        // Wait 3 seconds
+        yield return new WaitForSecondsRealtime(3f);
+        
+        // Hide thinking text
+        if (thinkingText != null)
+        {
+            thinkingText.gameObject.SetActive(false);
+        }
+        
+        // Fade back to normal
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 0f;
+            Debug.Log("Faded back to normal after thinking text");
+        }
+        
+        // Show player character again
+        if (playerModel != null)
+        {
+            playerModel.SetActive(true);
+            Debug.Log("Player character shown again");
         }
         
         // Unfreeze player
@@ -412,13 +489,7 @@ public class DormManager : MonoBehaviour
         if (shovelScript != null)
             shovelScript.CompletePickup();
         
-        // Show thinking text (5 seconds)
-        StartCoroutine(PhotoFoundSequence());
-    }
-    
-    IEnumerator PhotoFoundSequence()
-    {
-        yield return StartCoroutine(ShowThinkingTextWithFade(photoFoundMessage, thinkingTextDuration));
+        photoInspected = true;
         
         AdvanceToAfternoon();
         
