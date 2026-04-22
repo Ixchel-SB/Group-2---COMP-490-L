@@ -19,6 +19,7 @@ public class DormDoorInteraction : MonoBehaviour
     [Header("Block Message")]
     public TextMeshProUGUI blockMessageText;
     public string blockMessage = "I don't want to go inside yet. I want to get something to eat first...";
+    public string sequenceLockMessage = "I can't leave yet... something is happening.";
     public float messageDuration = 3f;
     
     private bool playerInRange = false;
@@ -26,6 +27,7 @@ public class DormDoorInteraction : MonoBehaviour
     private CanvasGroup promptCanvasGroup;
     private bool isTransitioning = false;
     private CanvasGroup blackCanvasGroup;
+    private bool isLocked = false;
     
     void Start()
     {
@@ -62,6 +64,12 @@ public class DormDoorInteraction : MonoBehaviour
     {
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
+            if (isLocked)
+            {
+                StartCoroutine(ShowSequenceLockMessage());
+                return;
+            }
+            
             if (CanUseDoor())
             {
                 StartCoroutine(EnterDorm());
@@ -70,6 +78,51 @@ public class DormDoorInteraction : MonoBehaviour
             {
                 StartCoroutine(ShowBlockMessage());
             }
+        }
+    }
+    
+    public void LockDoor()
+    {
+        isLocked = true;
+        Debug.Log("Dorm door locked - cannot exit during sequence");
+    }
+    
+    public void UnlockDoor()
+    {
+        isLocked = false;
+        Debug.Log("Dorm door unlocked - can exit now");
+    }
+    
+    IEnumerator ShowSequenceLockMessage()
+    {
+        Debug.Log("Cannot exit - door is locked by sequence");
+        
+        if (blockMessageText != null)
+        {
+            CanvasGroup cg = blockMessageText.GetComponent<CanvasGroup>();
+            blockMessageText.text = sequenceLockMessage;
+            blockMessageText.gameObject.SetActive(true);
+            
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            cg.alpha = 1f;
+            
+            yield return new WaitForSeconds(messageDuration);
+            
+            elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            cg.alpha = 0f;
+            blockMessageText.gameObject.SetActive(false);
         }
     }
     

@@ -48,6 +48,12 @@ public class DormManager : MonoBehaviour
     [Header("Valentina Second Dialogue")]
     public RoommateDialogue valentinaSecondDialogue;
     
+    [Header("Post Photo Sequence")]
+    public PostPhotoSequence postPhotoSequence;
+    
+    [Header("Exit Door")]
+    public DormDoorInteraction exitDoor;
+    
     private CanvasGroup thinkingCanvasGroup;
     private bool waitingForPhotoInspection = false;
     private ShovelInteraction shovelScript;
@@ -124,7 +130,23 @@ public class DormManager : MonoBehaviour
             valentinaHallway.SetActive(true);
         
         if (valentinaRoom != null)
-            valentinaRoom.SetActive(false);
+        {
+            valentinaRoom.SetActive(true);
+            
+            // DISABLE second dialogue interaction at start (will be enabled after photo)
+            RoommateInteraction valentinaInteraction = valentinaRoom.GetComponent<RoommateInteraction>();
+            if (valentinaInteraction != null)
+            {
+                valentinaInteraction.enabled = false;
+                Debug.Log("Valentina's second dialogue interaction DISABLED at start");
+            }
+            
+            if (valentinaRoomPosition != null)
+            {
+                valentinaRoom.transform.position = valentinaRoomPosition.position;
+                valentinaRoom.transform.rotation = valentinaRoomPosition.rotation;
+            }
+        }
         
         if (thinkingText != null)
         {
@@ -177,7 +199,6 @@ public class DormManager : MonoBehaviour
         thinkingText.text = message;
         thinkingCanvasGroup.alpha = 1f;
         
-        // Text stays for 3 seconds
         yield return new WaitForSeconds(3f);
         
         thinkingText.gameObject.SetActive(false);
@@ -493,10 +514,39 @@ public class DormManager : MonoBehaviour
         
         AdvanceToAfternoon();
         
+        // Enable Valentina's second dialogue
         if (valentinaSecondDialogue != null)
         {
             valentinaSecondDialogue.SetAsSecondDialogue();
             Debug.Log("Valentina's second dialogue is now available");
+        }
+        
+        // ENABLE the interaction on Valentina_Room (second model)
+        if (valentinaRoom != null)
+        {
+            RoommateInteraction valentinaInteraction = valentinaRoom.GetComponent<RoommateInteraction>();
+            if (valentinaInteraction != null)
+            {
+                valentinaInteraction.enabled = true;
+                Debug.Log("Valentina's second dialogue interaction ENABLED");
+            }
+        }
+        
+        // Start the post-photo sequence
+        if (postPhotoSequence != null)
+        {
+            // Pass the exit door reference to the sequence
+            if (exitDoor != null)
+            {
+                postPhotoSequence.SetExitDoor(exitDoor);
+            }
+            
+            Debug.Log("Starting post-photo sequence");
+            postPhotoSequence.StartSequence();
+        }
+        else
+        {
+            Debug.LogWarning("PostPhotoSequence not assigned in DormManager!");
         }
     }
     
