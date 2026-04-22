@@ -539,6 +539,7 @@ public class DormManager : MonoBehaviour
             if (exitDoor != null)
             {
                 postPhotoSequence.SetExitDoor(exitDoor);
+                Debug.Log("Exit door passed to PostPhotoSequence");
             }
             
             Debug.Log("Starting post-photo sequence");
@@ -546,7 +547,7 @@ public class DormManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("PostPhotoSequence not assigned in DormManager!");
+            Debug.LogError("PostPhotoSequence is NULL in DormManager! Make sure it's assigned.");
         }
     }
     
