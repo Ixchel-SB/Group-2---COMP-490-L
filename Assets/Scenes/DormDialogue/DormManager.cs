@@ -15,7 +15,7 @@ public class DormManager : MonoBehaviour
     private string selectedFood = "";
     private bool eatReminderShown = false;
     private bool isPhotoVisible = false;
-    private bool secondDialogueCompleted = false;  // ADD THIS
+    private bool secondDialogueCompleted = false;
     
     public GameObject eatFoodPrompt;
     
@@ -78,7 +78,6 @@ public class DormManager : MonoBehaviour
         
         if (player != null)
         {
-            // Find player model for hiding
             SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
             if (skinnedMesh != null)
                 playerModel = skinnedMesh.gameObject;
@@ -134,7 +133,6 @@ public class DormManager : MonoBehaviour
         {
             valentinaRoom.SetActive(true);
             
-            // DISABLE second dialogue interaction at start (will be enabled after photo)
             RoommateInteraction valentinaInteraction = valentinaRoom.GetComponent<RoommateInteraction>();
             if (valentinaInteraction != null)
             {
@@ -163,22 +161,16 @@ public class DormManager : MonoBehaviour
     {
         if (waitingForPhotoInspection)
         {
-            // Handle rotation with mouse movement (no click needed)
             Vector2 mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
             
             if (mouseDelta != Vector2.zero && photoObject != null)
             {
                 rotationY += mouseDelta.x * photoRotationSpeed;
                 rotationX += -mouseDelta.y * photoRotationSpeed;
-                
-                // Clamp vertical rotation to prevent flipping
                 rotationX = Mathf.Clamp(rotationX, -90f, 90f);
-                
-                // Apply rotation
                 photoObject.transform.rotation = Quaternion.Euler(rotationX, rotationY, 0);
             }
             
-            // Press F to continue
             if (Input.GetKeyDown(KeyCode.F))
             {
                 Debug.Log("F pressed - completing photo inspection");
@@ -354,7 +346,6 @@ public class DormManager : MonoBehaviour
         Debug.Log("Player ate the " + selectedFood + "!");
     }
     
-    // ADD THIS METHOD
     public void OnSecondDialogueCompleted()
     {
         secondDialogueCompleted = true;
@@ -365,45 +356,37 @@ public class DormManager : MonoBehaviour
     {
         Debug.Log("ShowPhotoForInspection called");
         
-        // Reset rotation values
         rotationX = 0f;
         rotationY = 0f;
         
-        // Make sure black screen is NOT active
         if (blackCanvasGroup != null)
         {
             blackCanvasGroup.alpha = 0f;
         }
         
-        // Hide player character
         if (playerModel != null)
         {
             playerModel.SetActive(false);
             Debug.Log("Player character hidden");
         }
         
-        // Freeze player movement
         if (playerController != null)
         {
             playerController.enabled = false;
             Debug.Log("Player frozen");
         }
         
-        // Show and position photo
         if (photoObject != null && mainCamera != null)
         {
-            // Store original values
             originalPhotoPos = photoObject.transform.position;
             originalPhotoRot = photoObject.transform.rotation;
             originalPhotoScale = photoObject.transform.localScale;
             
-            // Position photo closer to camera (2 units away)
             Vector3 photoPosition = mainCamera.transform.position + mainCamera.transform.forward * photoDistanceFromCamera;
             photoObject.transform.position = photoPosition;
             photoObject.transform.LookAt(mainCamera.transform);
             photoObject.transform.localScale = originalPhotoScale * 1.5f;
             
-            // Store initial rotation
             Vector3 initialEuler = photoObject.transform.eulerAngles;
             rotationX = initialEuler.x;
             rotationY = initialEuler.y;
@@ -421,7 +404,6 @@ public class DormManager : MonoBehaviour
         waitingForPhotoInspection = true;
         isPhotoVisible = true;
         
-        // Show prompt
         if (thinkingText != null)
         {
             StartCoroutine(ShowTempText("Move your mouse to rotate the photo\nPress F to continue", 2f));
@@ -444,7 +426,6 @@ public class DormManager : MonoBehaviour
         waitingForPhotoInspection = false;
         isPhotoVisible = false;
         
-        // Hide photo and restore position
         if (photoObject != null)
         {
             photoObject.SetActive(false);
@@ -454,7 +435,6 @@ public class DormManager : MonoBehaviour
             Debug.Log("Photo hidden and restored");
         }
         
-        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -468,7 +448,6 @@ public class DormManager : MonoBehaviour
             Debug.Log("Faded to black for thinking text");
         }
         
-        // Show thinking text on black screen for 3 seconds
         if (thinkingText != null)
         {
             thinkingText.gameObject.SetActive(true);
@@ -477,16 +456,13 @@ public class DormManager : MonoBehaviour
             Debug.Log("Showing thinking text on black screen: " + photoFoundMessage);
         }
         
-        // Wait 3 seconds
         yield return new WaitForSecondsRealtime(3f);
         
-        // Hide thinking text
         if (thinkingText != null)
         {
             thinkingText.gameObject.SetActive(false);
         }
         
-        // Fade back to normal
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -500,21 +476,18 @@ public class DormManager : MonoBehaviour
             Debug.Log("Faded back to normal after thinking text");
         }
         
-        // Show player character again
         if (playerModel != null)
         {
             playerModel.SetActive(true);
             Debug.Log("Player character shown again");
         }
         
-        // Unfreeze player
         if (playerController != null)
         {
             playerController.enabled = true;
             Debug.Log("Player unfrozen");
         }
         
-        // Complete shovel pickup
         if (shovelScript != null)
             shovelScript.CompletePickup();
         
@@ -522,14 +495,12 @@ public class DormManager : MonoBehaviour
         
         AdvanceToAfternoon();
         
-        // Enable Valentina's second dialogue (player must talk to her next)
         if (valentinaSecondDialogue != null)
         {
             valentinaSecondDialogue.SetAsSecondDialogue();
             Debug.Log("Valentina's second dialogue is now available");
         }
         
-        // ENABLE the interaction on Valentina_Room (second model)
         if (valentinaRoom != null)
         {
             RoommateInteraction valentinaInteraction = valentinaRoom.GetComponent<RoommateInteraction>();
@@ -540,14 +511,11 @@ public class DormManager : MonoBehaviour
             }
         }
         
-        // Reset second dialogue flag
         secondDialogueCompleted = false;
         
-        // Wait for the second dialogue to be completed
         Debug.Log("Waiting for player to complete Valentina's second dialogue...");
         yield return new WaitUntil(() => secondDialogueCompleted);
         
-        // Start the post-photo sequence after second dialogue ends
         if (postPhotoSequence != null)
         {
             Debug.Log("=== SECOND DIALOGUE COMPLETED - STARTING POST-PHOTO SEQUENCE ===");

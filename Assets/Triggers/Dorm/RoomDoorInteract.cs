@@ -53,8 +53,13 @@ public class RoomDoorInteraction : MonoBehaviour
     {
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
-            // Check if post-photo sequence is active and arrow not pressed yet
             PostPhotoSequence postSequence = FindObjectOfType<PostPhotoSequence>();
+            if (postSequence != null && postSequence.HasArrowPressed() && postSequence.CanUseDoorAfterSequence())
+            {
+                postSequence.StartDoorSequence();
+                return;
+            }
+            
             if (postSequence != null && postSequence.IsSequenceRunning() && !postSequence.HasArrowPressed())
             {
                 postSequence.ShowDoorBlockMessage();
@@ -128,7 +133,6 @@ public class RoomDoorInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
         }
         
-        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -143,7 +147,6 @@ public class RoomDoorInteraction : MonoBehaviour
         
         yield return new WaitForSeconds(waitTime);
         
-        // Teleport player
         if (player != null && teleportPosition != null)
         {
             player.transform.position = teleportPosition.position;
@@ -151,7 +154,6 @@ public class RoomDoorInteraction : MonoBehaviour
             Debug.Log("Player teleported to: " + teleportPosition.name);
         }
         
-        // Fade back in
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;

@@ -8,6 +8,12 @@ public class PostPhotoSequence : MonoBehaviour
     public TextMeshProUGUI thinkingText;
     public GameObject blackScreenPanel;
     
+    [Header("Dialogue UI Elements")]
+    public GameObject dialoguePanel;
+    public TextMeshProUGUI speakerText;
+    public TextMeshProUGUI dialogueText;
+    public TextMeshProUGUI continueText;
+    
     [Header("Arrow Interaction")]
     public GameObject arrowObject1;
     
@@ -15,7 +21,8 @@ public class PostPhotoSequence : MonoBehaviour
     private DormDoorInteraction exitDoor;
     
     [Header("Girls Room Door")]
-    public MonoBehaviour girlsRoomDoor;
+    public RoomDoorInteraction girlsRoomDoor;
+    public Transform bedSpawnPoint;
     
     [Header("Door Block Message")]
     public string doorBlockMessage = "I should finish unpacking...";
@@ -45,7 +52,8 @@ public class PostPhotoSequence : MonoBehaviour
     private bool isSequenceRunning = false;
     private bool waitingForF = false;
     private bool hasStarted = false;
-    private bool arrowPressed = false;  // ADD THIS
+    private bool arrowPressed = false;
+    private bool doorSequenceTriggered = false;
     
     void Start()
     {
@@ -59,10 +67,11 @@ public class PostPhotoSequence : MonoBehaviour
             thinkingCanvasGroup.alpha = 0f;
             thinkingText.gameObject.SetActive(false);
         }
-        else
-        {
-            Debug.LogError("ThinkingText is NULL in PostPhotoSequence!");
-        }
+        
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
+        if (continueText != null)
+            continueText.text = "Press F to continue";
         
         if (blackScreenPanel != null)
         {
@@ -71,18 +80,15 @@ public class PostPhotoSequence : MonoBehaviour
                 blackCanvasGroup = blackScreenPanel.AddComponent<CanvasGroup>();
             blackCanvasGroup.alpha = 0f;
         }
-        else
-        {
-            Debug.LogError("BlackScreenPanel is NULL in PostPhotoSequence!");
-        }
         
         if (arrowObject1 != null)
         {
             arrowObject1.SetActive(false);
+            Debug.Log("ArrowObject1 initialized - disabled");
         }
         else
         {
-            Debug.LogError("ArrowObject1 is NOT assigned in PostPhotoSequence Inspector!");
+            Debug.LogError("ArrowObject1 is NULL! Please assign it in the Inspector.");
         }
     }
     
@@ -90,7 +96,6 @@ public class PostPhotoSequence : MonoBehaviour
     {
         if (waitingForF && Input.GetKeyDown(KeyCode.F))
         {
-            Debug.Log("F pressed during dialogue - continuing");
             waitingForF = false;
         }
     }
@@ -98,12 +103,18 @@ public class PostPhotoSequence : MonoBehaviour
     public void SetExitDoor(DormDoorInteraction door)
     {
         exitDoor = door;
-        Debug.Log("Exit door reference set in PostPhotoSequence");
     }
     
     public void StartSequence()
     {
-        if (hasStarted) return;
+        Debug.Log("=== StartSequence() CALLED ===");
+        
+        if (hasStarted) 
+        {
+            Debug.Log("Sequence already started - ignoring");
+            return;
+        }
+        
         hasStarted = true;
         isSequenceRunning = true;
         StartCoroutine(RunSequence());
@@ -119,9 +130,26 @@ public class PostPhotoSequence : MonoBehaviour
         return arrowPressed;
     }
     
+    public bool CanUseDoorAfterSequence()
+    {
+        return arrowPressed && !doorSequenceTriggered;
+    }
+    
     public void ShowDoorBlockMessage()
     {
-        StartCoroutine(DisplayDoorBlockMessage());
+        if (!arrowPressed)
+        {
+            StartCoroutine(DisplayDoorBlockMessage());
+        }
+    }
+    
+    public void StartDoorSequence()
+    {
+        Debug.Log("StartDoorSequence called - arrowPressed: " + arrowPressed + ", doorSequenceTriggered: " + doorSequenceTriggered);
+        
+        if (!arrowPressed || doorSequenceTriggered) return;
+        doorSequenceTriggered = true;
+        StartCoroutine(RunDoorSequence());
     }
     
     IEnumerator DisplayDoorBlockMessage()
@@ -138,7 +166,7 @@ public class PostPhotoSequence : MonoBehaviour
     
     IEnumerator RunSequence()
     {
-        Debug.Log("=== POST-PHOTO SEQUENCE STARTED ===");
+        Debug.Log("=== RUNSEQUENCE STARTED ===");
         
         // Lock the exit door
         if (exitDoor != null)
@@ -158,52 +186,42 @@ public class PostPhotoSequence : MonoBehaviour
         if (arrowObject1 != null)
         {
             arrowObject1.SetActive(true);
-            Debug.Log("Arrow enabled on closet");
+            Debug.Log("Arrow ENABLED on closet - Current state: " + arrowObject1.activeSelf);
+        }
+        else
+        {
+            Debug.LogError("ArrowObject1 is NULL - cannot enable arrow!");
         }
         
         // Wait for player to press F on arrow
         Debug.Log("Waiting for player to press F on arrow...");
         yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.F));
         arrowPressed = true;
-        Debug.Log("F pressed on arrow - continuing sequence");
+        Debug.Log("F pressed on arrow - Arrow pressed = true");
         
         if (arrowObject1 != null)
             arrowObject1.SetActive(false);
         
-        // Time text 1 (Sunday 3:30pm)
-        yield return StartCoroutine(ShowTimeText(timeText1));
-        
         // Self dialogue lines
         for (int i = 0; i < selfDialogueLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogueLine(selfDialogueLines[i], "Meztli"));
+            yield return StartCoroutine(ShowDialogue(selfDialogueLines[i], "Meztly"));
         }
         
         // Valentina calls
         for (int i = 0; i < valentinaLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogueLine(valentinaLines[i], "Valentina"));
+            yield return StartCoroutine(ShowDialogue(valentinaLines[i], "Valentina"));
         }
         
         // Re-enable the girls room door after Valentina's calls
         if (girlsRoomDoor != null)
         {
             girlsRoomDoor.enabled = true;
-            Debug.Log("Girls room door RE-ENABLED - player can now leave");
+            Debug.Log("Girls room door RE-ENABLED");
         }
         
-        // Wait for player to press F on the door to teleport
-        Debug.Log("Waiting for player to press F on the door...");
-        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.F));
-        Debug.Log("F pressed on door - continuing sequence");
-        
-        // Story text
-        yield return StartCoroutine(ShowStoryText());
-        
-        // Time text 2 (Monday 7:15am)
-        yield return StartCoroutine(ShowTimeText(timeText2));
-        
-        // Unlock the exit door at the end
+        // Unlock exit door
         if (exitDoor != null)
         {
             exitDoor.UnlockDoor();
@@ -211,12 +229,73 @@ public class PostPhotoSequence : MonoBehaviour
         }
         
         isSequenceRunning = false;
-        Debug.Log("=== POST-PHOTO SEQUENCE COMPLETED ===");
+        Debug.Log("=== POST-PHOTO SEQUENCE COMPLETED - Door sequence ready ===");
+    }
+    
+    IEnumerator RunDoorSequence()
+    {
+        Debug.Log("=== DOOR SEQUENCE STARTED ===");
+        
+        // Disable the door during sequence
+        if (girlsRoomDoor != null)
+            girlsRoomDoor.enabled = false;
+        
+        // Time text 1
+        yield return StartCoroutine(ShowTimeText(timeText1));
+        
+        // Story text
+        yield return StartCoroutine(ShowStoryText());
+        
+        // Time text 2
+        yield return StartCoroutine(ShowTimeText(timeText2));
+        
+        // Teleport player to bed
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null && bedSpawnPoint != null)
+        {
+            player.transform.position = bedSpawnPoint.position;
+            player.transform.rotation = bedSpawnPoint.rotation;
+            Debug.Log("Player teleported to bed");
+        }
+        
+        // Re-enable the door
+        if (girlsRoomDoor != null)
+            girlsRoomDoor.enabled = true;
+        
+        Debug.Log("=== DOOR SEQUENCE COMPLETED ===");
+    }
+    
+    IEnumerator ShowDialogue(string line, string speaker)
+    {
+        if (dialoguePanel == null)
+        {
+            thinkingText.gameObject.SetActive(true);
+            thinkingText.text = $"{speaker}: {line}";
+            thinkingCanvasGroup.alpha = 1f;
+            waitingForF = true;
+            yield return new WaitUntil(() => !waitingForF);
+            thinkingText.gameObject.SetActive(false);
+            yield break;
+        }
+        
+        dialoguePanel.SetActive(true);
+        speakerText.text = speaker + ":";
+        dialogueText.text = "";
+        
+        foreach (char c in line.ToCharArray())
+        {
+            dialogueText.text += c;
+            yield return new WaitForSeconds(0.05f);
+        }
+        
+        waitingForF = true;
+        yield return new WaitUntil(() => !waitingForF);
+        
+        dialoguePanel.SetActive(false);
     }
     
     IEnumerator ShowTimeText(string timeText)
     {
-        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -229,7 +308,6 @@ public class PostPhotoSequence : MonoBehaviour
             blackCanvasGroup.alpha = 1f;
         }
         
-        // Show text
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = timeText;
         thinkingCanvasGroup.alpha = 1f;
@@ -238,7 +316,6 @@ public class PostPhotoSequence : MonoBehaviour
         
         thinkingText.gameObject.SetActive(false);
         
-        // Fade back
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -252,21 +329,8 @@ public class PostPhotoSequence : MonoBehaviour
         }
     }
     
-    IEnumerator ShowDialogueLine(string line, string speaker)
-    {
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = $"{speaker}: {line}";
-        thinkingCanvasGroup.alpha = 1f;
-        
-        waitingForF = true;
-        yield return new WaitUntil(() => !waitingForF);
-        
-        thinkingText.gameObject.SetActive(false);
-    }
-    
     IEnumerator ShowStoryText()
     {
-        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -279,7 +343,6 @@ public class PostPhotoSequence : MonoBehaviour
             blackCanvasGroup.alpha = 1f;
         }
         
-        // Show story text
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = storyText;
         thinkingCanvasGroup.alpha = 1f;
@@ -288,7 +351,6 @@ public class PostPhotoSequence : MonoBehaviour
         
         thinkingText.gameObject.SetActive(false);
         
-        // Fade back
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
