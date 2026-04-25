@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class RoomDoorInteract : MonoBehaviour
+public class RoomDoorInteraction : MonoBehaviour
 {
     [Header("Door Settings")]
     public string doorName = "Door";
@@ -30,7 +30,6 @@ public class RoomDoorInteract : MonoBehaviour
     void Start()
     {
         Time.timeScale = 1f;
-        Debug.Log("RoomDoorInteract started on: " + gameObject.name);
         
         if (interactionPrompt != null)
         {
@@ -40,10 +39,6 @@ public class RoomDoorInteract : MonoBehaviour
             promptCanvasGroup.alpha = 0f;
             interactionPrompt.SetActive(false);
         }
-        else
-        {
-            Debug.LogWarning("Interaction Prompt not assigned on " + gameObject.name);
-        }
         
         if (blackScreenPanel != null)
         {
@@ -52,21 +47,22 @@ public class RoomDoorInteract : MonoBehaviour
                 blackCanvasGroup = blackScreenPanel.AddComponent<CanvasGroup>();
             blackCanvasGroup.alpha = 0f;
         }
-        
-        if (doorBlockMessage == null)
-        {
-            Debug.LogWarning("DoorBlockMessage not assigned on " + gameObject.name);
-        }
     }
     
     void Update()
     {
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
+            // Check if post-photo sequence is active and arrow not pressed yet
+            PostPhotoSequence postSequence = FindObjectOfType<PostPhotoSequence>();
+            if (postSequence != null && postSequence.IsSequenceRunning() && !postSequence.HasArrowPressed())
+            {
+                postSequence.ShowDoorBlockMessage();
+                return;
+            }
+            
             if (Time.time - lastInteractionTime < interactionCooldown) return;
             lastInteractionTime = Time.time;
-            
-            Debug.Log("F pressed on door: " + doorName);
             
             if (CanUseDoor())
             {
@@ -86,7 +82,6 @@ public class RoomDoorInteract : MonoBehaviour
             DormManager dormManager = FindObjectOfType<DormManager>();
             if (dormManager == null || !dormManager.IsValentinaTalked())
             {
-                Debug.Log("Cannot use door - Valentina not talked to yet");
                 return false;
             }
         }
@@ -95,9 +90,6 @@ public class RoomDoorInteract : MonoBehaviour
     
     void ShowBlockMessage()
     {
-        Debug.Log("Showing block message for door: " + doorName);
-        Debug.Log("doorBlockMessage is: " + (doorBlockMessage != null ? "ASSIGNED" : "NULL"));
-        
         DormManager dormManager = FindObjectOfType<DormManager>();
         if (dormManager != null && dormManager.IsValentinaTalked() && !dormManager.HasFoodEaten())
         {
@@ -106,11 +98,6 @@ public class RoomDoorInteract : MonoBehaviour
         else if (doorBlockMessage != null)
         {
             doorBlockMessage.ShowMessage(blockMessage);
-            Debug.Log("ShowMessage called on doorBlockMessage with: " + blockMessage);
-        }
-        else
-        {
-            Debug.LogError("doorBlockMessage is NULL on " + doorName);
         }
         
         if (interactionPrompt != null)
@@ -141,6 +128,7 @@ public class RoomDoorInteract : MonoBehaviour
             interactionPrompt.SetActive(false);
         }
         
+        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -155,6 +143,7 @@ public class RoomDoorInteract : MonoBehaviour
         
         yield return new WaitForSeconds(waitTime);
         
+        // Teleport player
         if (player != null && teleportPosition != null)
         {
             player.transform.position = teleportPosition.position;
@@ -162,6 +151,7 @@ public class RoomDoorInteract : MonoBehaviour
             Debug.Log("Player teleported to: " + teleportPosition.name);
         }
         
+        // Fade back in
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -179,13 +169,10 @@ public class RoomDoorInteract : MonoBehaviour
     
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log("Door trigger entered by: " + other.name + " with tag: " + other.tag);
-        
         if (other.CompareTag("Player") && !isTransitioning)
         {
             playerInRange = true;
             player = other.gameObject;
-            Debug.Log("Player in range of door: " + doorName);
             if (interactionPrompt != null)
             {
                 interactionPrompt.SetActive(true);
@@ -201,7 +188,6 @@ public class RoomDoorInteract : MonoBehaviour
         {
             playerInRange = false;
             player = null;
-            Debug.Log("Player left range of door: " + doorName);
             if (interactionPrompt != null)
             {
                 if (promptCanvasGroup != null)

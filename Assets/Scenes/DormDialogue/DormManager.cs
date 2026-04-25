@@ -15,6 +15,7 @@ public class DormManager : MonoBehaviour
     private string selectedFood = "";
     private bool eatReminderShown = false;
     private bool isPhotoVisible = false;
+    private bool secondDialogueCompleted = false;  // ADD THIS
     
     public GameObject eatFoodPrompt;
     
@@ -353,6 +354,13 @@ public class DormManager : MonoBehaviour
         Debug.Log("Player ate the " + selectedFood + "!");
     }
     
+    // ADD THIS METHOD
+    public void OnSecondDialogueCompleted()
+    {
+        secondDialogueCompleted = true;
+        Debug.Log("Second dialogue completed - flag set to true");
+    }
+    
     public void ShowPhotoForInspection()
     {
         Debug.Log("ShowPhotoForInspection called");
@@ -514,7 +522,7 @@ public class DormManager : MonoBehaviour
         
         AdvanceToAfternoon();
         
-        // Enable Valentina's second dialogue
+        // Enable Valentina's second dialogue (player must talk to her next)
         if (valentinaSecondDialogue != null)
         {
             valentinaSecondDialogue.SetAsSecondDialogue();
@@ -532,17 +540,24 @@ public class DormManager : MonoBehaviour
             }
         }
         
-        // Start the post-photo sequence
+        // Reset second dialogue flag
+        secondDialogueCompleted = false;
+        
+        // Wait for the second dialogue to be completed
+        Debug.Log("Waiting for player to complete Valentina's second dialogue...");
+        yield return new WaitUntil(() => secondDialogueCompleted);
+        
+        // Start the post-photo sequence after second dialogue ends
         if (postPhotoSequence != null)
         {
-            // Pass the exit door reference to the sequence
+            Debug.Log("=== SECOND DIALOGUE COMPLETED - STARTING POST-PHOTO SEQUENCE ===");
+            
             if (exitDoor != null)
             {
                 postPhotoSequence.SetExitDoor(exitDoor);
                 Debug.Log("Exit door passed to PostPhotoSequence");
             }
             
-            Debug.Log("Starting post-photo sequence");
             postPhotoSequence.StartSequence();
         }
         else

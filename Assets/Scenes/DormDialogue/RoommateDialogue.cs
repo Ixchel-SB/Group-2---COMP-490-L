@@ -223,6 +223,14 @@ public class RoommateDialogue : MonoBehaviour
             {
                 dormManager.ValentinaFirstDialogueComplete();
             }
+            
+            // NEW: Check if this is Valentina's second dialogue
+            // The second dialogue can be identified by the first line containing "look what I found"
+            if (roommateName == "Valentina" && dialogueLines.Count > 0 && dialogueLines[0].line.Contains("look what I found"))
+            {
+                dormManager.OnSecondDialogueCompleted();
+                Debug.Log("Notified DormManager that Valentina's second dialogue ended");
+            }
         }
         
         if (blackCanvasGroup != null)
