@@ -55,9 +55,26 @@ public class PostPhotoSequence : MonoBehaviour
     private bool arrowPressed = false;
     private bool doorSequenceTriggered = false;
     
+    // Player freeze references
+    private GameObject player;
+    private MonoBehaviour playerController;
+    
     void Start()
     {
         Debug.Log("PostPhotoSequence Start() called");
+        
+        // Find player for freezing
+        player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            playerController = player.GetComponent<MonoBehaviour>();
+            if (playerController == null)
+            {
+                Transform playerArmature = player.transform.Find("PlayerArmature");
+                if (playerArmature != null)
+                    playerController = playerArmature.GetComponent<MonoBehaviour>();
+            }
+        }
         
         if (thinkingText != null)
         {
@@ -84,7 +101,6 @@ public class PostPhotoSequence : MonoBehaviour
         if (arrowObject1 != null)
         {
             arrowObject1.SetActive(false);
-            Debug.Log("ArrowObject1 initialized - disabled");
         }
         else
         {
@@ -145,192 +161,197 @@ public class PostPhotoSequence : MonoBehaviour
     
     public void StartDoorSequence()
     {
-        Debug.Log("StartDoorSequence called - arrowPressed: " + arrowPressed + ", doorSequenceTriggered: " + doorSequenceTriggered);
-        
         if (!arrowPressed || doorSequenceTriggered) return;
         doorSequenceTriggered = true;
         StartCoroutine(RunDoorSequence());
     }
     
-    IEnumerator DisplayDoorBlockMessage()
+    public void OnArrowPressed()
     {
-        if (!arrowPressed)
-        {
-            thinkingText.gameObject.SetActive(true);
-            thinkingText.text = doorBlockMessage;
-            thinkingCanvasGroup.alpha = 1f;
-            yield return new WaitForSeconds(2f);
-            thinkingText.gameObject.SetActive(false);
-        }
+        if (arrowPressed) return;
+        arrowPressed = true;
+        Debug.Log("Arrow pressed - starting dialogue");
+        StartCoroutine(PlayArrowDialogue());
     }
     
-    IEnumerator RunSequence()
+    void FreezePlayer()
     {
-        Debug.Log("=== RUNSEQUENCE STARTED ===");
-        
-        // Lock the exit door
-        if (exitDoor != null)
+        if (playerController != null)
         {
-            exitDoor.LockDoor();
-            Debug.Log("Exit door LOCKED");
+            playerController.enabled = false;
         }
-        
-        // Disable the girls room door so player can't leave
-        if (girlsRoomDoor != null)
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+    
+    void UnfreezePlayer()
+    {
+        if (playerController != null)
         {
-            girlsRoomDoor.enabled = false;
-            Debug.Log("Girls room door DISABLED");
+            playerController.enabled = true;
         }
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+    
+    IEnumerator PlayArrowDialogue()
+    {
+        Debug.Log("=== PLAYING ARROW DIALOGUE ===");
         
-        // Show arrow on closet
+        // Freeze player
+        FreezePlayer();
+        
+        // Hide arrow
         if (arrowObject1 != null)
         {
-            arrowObject1.SetActive(true);
-            Debug.Log("Arrow ENABLED on closet - Current state: " + arrowObject1.activeSelf);
-        }
-        else
-        {
-            Debug.LogError("ArrowObject1 is NULL - cannot enable arrow!");
-        }
-        
-        // Wait for player to press F on arrow
-        Debug.Log("Waiting for player to press F on arrow...");
-        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.F));
-        arrowPressed = true;
-        Debug.Log("F pressed on arrow - Arrow pressed = true");
-        
-        if (arrowObject1 != null)
             arrowObject1.SetActive(false);
+        }
         
-        // Self dialogue lines
+        // Fade to black
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 1f;
+            Debug.Log("Screen black - dialogue will appear");
+        }
+        
+        // Show dialogue lines on black screen
         for (int i = 0; i < selfDialogueLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogue(selfDialogueLines[i], "Meztly"));
+            yield return StartCoroutine(ShowDialogueOnBlackScreen(selfDialogueLines[i], "Meztly"));
         }
         
-        // Valentina calls
+        // Show Valentina lines on black screen
         for (int i = 0; i < valentinaLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogue(valentinaLines[i], "Valentina"));
+            yield return StartCoroutine(ShowDialogueOnBlackScreen(valentinaLines[i], "Valentina"));
         }
         
-        // Re-enable the girls room door after Valentina's calls
+        // Fade back to normal
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 0f;
+            Debug.Log("Screen back to normal");
+        }
+        
+        // Unfreeze player
+        UnfreezePlayer();
+        
+        // Re-enable the girls room door
         if (girlsRoomDoor != null)
         {
             girlsRoomDoor.enabled = true;
-            Debug.Log("Girls room door RE-ENABLED");
         }
         
-        // Unlock exit door
         if (exitDoor != null)
         {
             exitDoor.UnlockDoor();
-            Debug.Log("Exit door UNLOCKED");
         }
         
         isSequenceRunning = false;
-        Debug.Log("=== POST-PHOTO SEQUENCE COMPLETED - Door sequence ready ===");
+        Debug.Log("=== POST-PHOTO SEQUENCE COMPLETED ===");
     }
     
-    IEnumerator RunDoorSequence()
+    IEnumerator ShowDialogueOnBlackScreen(string line, string speaker)
     {
-        Debug.Log("=== DOOR SEQUENCE STARTED ===");
-        
-        // Disable the door during sequence
-        if (girlsRoomDoor != null)
-            girlsRoomDoor.enabled = false;
-        
-        // Time text 1
-        yield return StartCoroutine(ShowTimeText(timeText1));
-        
-        // Story text
-        yield return StartCoroutine(ShowStoryText());
-        
-        // Time text 2
-        yield return StartCoroutine(ShowTimeText(timeText2));
-        
-        // Teleport player to bed
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null && bedSpawnPoint != null)
-        {
-            player.transform.position = bedSpawnPoint.position;
-            player.transform.rotation = bedSpawnPoint.rotation;
-            Debug.Log("Player teleported to bed");
-        }
-        
-        // Re-enable the door
-        if (girlsRoomDoor != null)
-            girlsRoomDoor.enabled = true;
-        
-        Debug.Log("=== DOOR SEQUENCE COMPLETED ===");
-    }
-    
-    IEnumerator ShowDialogue(string line, string speaker)
-    {
-        if (dialoguePanel == null)
-        {
-            thinkingText.gameObject.SetActive(true);
-            thinkingText.text = $"{speaker}: {line}";
-            thinkingCanvasGroup.alpha = 1f;
-            waitingForF = true;
-            yield return new WaitUntil(() => !waitingForF);
-            thinkingText.gameObject.SetActive(false);
-            yield break;
-        }
-        
+        // Show dialogue panel
         dialoguePanel.SetActive(true);
         speakerText.text = speaker + ":";
         dialogueText.text = "";
         
+        // Type out the text
         foreach (char c in line.ToCharArray())
         {
             dialogueText.text += c;
             yield return new WaitForSeconds(0.05f);
         }
         
+        // Show "Press F to continue" prompt
+        if (continueText != null)
+            continueText.gameObject.SetActive(true);
+        
+        // Wait for player to press F
         waitingForF = true;
         yield return new WaitUntil(() => !waitingForF);
         
+        // Hide continue text
+        if (continueText != null)
+            continueText.gameObject.SetActive(false);
+        
+        // Hide dialogue panel
         dialoguePanel.SetActive(false);
     }
     
-    IEnumerator ShowTimeText(string timeText)
+    IEnumerator DisplayDoorBlockMessage()
     {
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 1f;
-        }
-        
         thinkingText.gameObject.SetActive(true);
-        thinkingText.text = timeText;
+        thinkingText.text = doorBlockMessage;
         thinkingCanvasGroup.alpha = 1f;
-        
-        yield return new WaitForSeconds(3f);
-        
+        yield return new WaitForSeconds(2f);
         thinkingText.gameObject.SetActive(false);
-        
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 0f;
-        }
     }
     
-    IEnumerator ShowStoryText()
+    IEnumerator RunSequence()
     {
+        Debug.Log("=== RUNSEQUENCE STARTED ===");
+        
+        if (exitDoor != null)
+        {
+            exitDoor.LockDoor();
+        }
+        
+        if (girlsRoomDoor != null)
+        {
+            girlsRoomDoor.enabled = false;
+        }
+        
+        // Enable arrow
+        if (arrowObject1 != null)
+        {
+            arrowObject1.SetActive(true);
+            Transform prism = arrowObject1.transform.Find("Prism");
+            if (prism != null)
+            {
+                prism.gameObject.SetActive(true);
+                Renderer prismRenderer = prism.GetComponent<Renderer>();
+                if (prismRenderer != null) prismRenderer.enabled = true;
+            }
+        }
+        
+        Debug.Log("=== WAITING FOR ARROW PRESS ===");
+        
+        while (!arrowPressed)
+        {
+            yield return null;
+        }
+        
+        Debug.Log("Arrow pressed - continuing");
+    }
+    
+    IEnumerator RunDoorSequence()
+    {
+        Debug.Log("=== DOOR SEQUENCE STARTED ===");
+        
+        // Freeze player
+        FreezePlayer();
+        
+        if (girlsRoomDoor != null)
+            girlsRoomDoor.enabled = false;
+        
+        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -343,14 +364,28 @@ public class PostPhotoSequence : MonoBehaviour
             blackCanvasGroup.alpha = 1f;
         }
         
+        // Time text 1
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = timeText1;
+        thinkingCanvasGroup.alpha = 1f;
+        yield return new WaitForSeconds(3f);
+        thinkingText.gameObject.SetActive(false);
+        
+        // Story text
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = storyText;
         thinkingCanvasGroup.alpha = 1f;
-        
         yield return new WaitForSeconds(5f);
-        
         thinkingText.gameObject.SetActive(false);
         
+        // Time text 2
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = timeText2;
+        thinkingCanvasGroup.alpha = 1f;
+        yield return new WaitForSeconds(3f);
+        thinkingText.gameObject.SetActive(false);
+        
+        // Fade back to normal
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -362,5 +397,31 @@ public class PostPhotoSequence : MonoBehaviour
             }
             blackCanvasGroup.alpha = 0f;
         }
+        
+        // Teleport player to bed
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null && bedSpawnPoint != null)
+        {
+            Transform root = playerObj.transform.root;
+            root.position = bedSpawnPoint.position;
+            root.rotation = bedSpawnPoint.rotation;
+            playerObj.transform.position = bedSpawnPoint.position;
+            
+            CharacterController cc = playerObj.GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                cc.enabled = false;
+                playerObj.transform.position = bedSpawnPoint.position;
+                cc.enabled = true;
+            }
+        }
+        
+        // Unfreeze player
+        UnfreezePlayer();
+        
+        if (girlsRoomDoor != null)
+            girlsRoomDoor.enabled = true;
+        
+        Debug.Log("=== DOOR SEQUENCE COMPLETED ===");
     }
 }

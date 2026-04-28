@@ -9,6 +9,11 @@ public class ClosetArrowInteraction : MonoBehaviour
     private CanvasGroup promptCanvasGroup;
     private bool hasInteracted = false;
     
+    void Awake()
+    {
+        gameObject.SetActive(false);
+    }
+    
     void Start()
     {
         if (interactionPrompt != null)
@@ -19,9 +24,6 @@ public class ClosetArrowInteraction : MonoBehaviour
             promptCanvasGroup.alpha = 0f;
             interactionPrompt.SetActive(false);
         }
-        
-        // Start disabled - will be enabled after photo inspection
-        gameObject.SetActive(false);
     }
     
     void Update()
@@ -35,18 +37,17 @@ public class ClosetArrowInteraction : MonoBehaviour
     void Interact()
     {
         hasInteracted = true;
-        Debug.Log("Closet arrow interacted - starting post-photo sequence");
+        Debug.Log("Arrow pressed!");
         
         if (interactionPrompt != null)
             interactionPrompt.SetActive(false);
         
         if (postPhotoSequence != null)
         {
-            postPhotoSequence.StartSequence();
+            postPhotoSequence.OnArrowPressed();
         }
         
-        // Hide the arrow
-        gameObject.SetActive(false);
+        // DON'T hide the arrow here - let PostPhotoSequence handle it
     }
     
     void OnTriggerEnter(Collider other)

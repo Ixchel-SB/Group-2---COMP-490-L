@@ -7,7 +7,7 @@ public class ShovelInteraction : MonoBehaviour
     public DormManager dormManager;
     public GameObject blackScreenPanel;
     public float fadeDuration = 0.5f;
-    public float blackScreenHoldTime = 10f; // 10 seconds black screen with text
+    public float blackScreenHoldTime = 10f;
     public string pickupMessage = "It looks like something else was buried here";
     
     private bool playerInRange = false;
@@ -59,12 +59,6 @@ public class ShovelInteraction : MonoBehaviour
         if (interactionPrompt != null)
             interactionPrompt.SetActive(false);
         
-        // Show message on black screen
-        if (dormManager != null)
-        {
-            dormManager.ShowThinkingTextOnBlackScreen(pickupMessage);
-        }
-        
         // Fade to black
         if (blackCanvasGroup != null)
         {
@@ -77,6 +71,12 @@ public class ShovelInteraction : MonoBehaviour
             }
             blackCanvasGroup.alpha = 1f;
             Debug.Log("Faded to black");
+        }
+        
+        // Show message on black screen (text appears at same time as black screen)
+        if (dormManager != null)
+        {
+            dormManager.ShowThinkingTextOnBlackScreen(pickupMessage);
         }
         
         // Wait 10 seconds on black screen with text
@@ -102,7 +102,7 @@ public class ShovelInteraction : MonoBehaviour
         // Show photo for inspection on NORMAL screen
         if (dormManager != null)
         {
-            Debug.Log("Calling dormManager.ShowPhotoForInspection() - screen is normal");
+            Debug.Log("Calling dormManager.ShowPhotoForInspection()");
             dormManager.ShowPhotoForInspection();
         }
     }
