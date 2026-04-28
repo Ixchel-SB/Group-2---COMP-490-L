@@ -51,21 +51,17 @@ public class DialogueSystem : MonoBehaviour
             continueText.gameObject.SetActive(false);
         }
         
-        // Initialize black screen panel
         if (blackScreenPanel != null)
         {
             CanvasGroup cg = blackScreenPanel.GetComponent<CanvasGroup>();
             if (cg == null) cg = blackScreenPanel.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
-            cg.interactable = false;
-            cg.blocksRaycasts = false;
         }
         
         player = GameObject.FindGameObjectWithTag("Player");
         
         if (player != null)
         {
-            // Find the player's visible model
             SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
             if (skinnedMesh != null)
             {
@@ -77,7 +73,6 @@ public class DialogueSystem : MonoBehaviour
             }
             
             playerController = player.GetComponent<MonoBehaviour>();
-            
             if (playerController == null)
             {
                 Transform playerArmature = player.transform.Find("PlayerArmature");
@@ -110,7 +105,7 @@ public class DialogueSystem : MonoBehaviour
             Debug.Log("Player character hidden");
         }
         
-        // Freeze player movement
+        // Freeze player movement ONLY - NOT time
         if (playerController != null) playerController.enabled = false;
         if (playerFollowCamera != null) playerFollowCamera.enabled = false;
         
@@ -161,25 +156,16 @@ public class DialogueSystem : MonoBehaviour
     
     void EndDialogue()
     {
-        Debug.Log("EndDialogue called - cleaning up");
-        
+        Debug.Log("EndDialogue called");
         isDialogueActive = false;
         dialoguePanel.SetActive(false);
-        
-        if (continueText != null)
-            continueText.gameObject.SetActive(false);
-        
-        // Start the black screen transition
+        if (continueText != null) continueText.gameObject.SetActive(false);
         StartCoroutine(TransitionSequence());
     }
     
     IEnumerator TransitionSequence()
     {
-        if (blackScreenPanel == null)
-        {
-            Debug.LogError("BlackScreenPanel not assigned!");
-            yield break;
-        }
+        if (blackScreenPanel == null) yield break;
         
         CanvasGroup cg = blackScreenPanel.GetComponent<CanvasGroup>();
         if (cg == null) cg = blackScreenPanel.AddComponent<CanvasGroup>();
@@ -194,65 +180,45 @@ public class DialogueSystem : MonoBehaviour
         }
         cg.alpha = 1f;
         
-        Debug.Log("Screen black - waiting 5 seconds");
-        
         // WAIT 5 SECONDS
         yield return new WaitForSeconds(5f);
         
-        Debug.Log("5 seconds passed - restoring game");
-        
         // REMOVE NUN
         NPCInteraction npc = FindObjectOfType<NPCInteraction>();
-        if (npc != null)
-        {
-            npc.gameObject.SetActive(false);
-            Debug.Log("Nun removed");
-        }
+        if (npc != null) npc.gameObject.SetActive(false);
         
         // RESTORE CONTROLS
-        if (playerController != null)
-        {
-            playerController.enabled = true;
-            Debug.Log("Player controls restored");
-        }
+        if (playerController != null) playerController.enabled = true;
+        if (playerFollowCamera != null) playerFollowCamera.enabled = true;
         
-        if (playerFollowCamera != null)
-        {
-            playerFollowCamera.enabled = true;
-            Debug.Log("Camera follow restored");
-        }
-        
+        // RESTORE CAMERA
         if (mainCamera != null)
         {
             mainCamera.transform.position = originalCameraPos;
             mainCamera.transform.rotation = originalCameraRot;
-            Debug.Log("Camera position restored");
         }
         
         // SHOW PLAYER CHARACTER AGAIN
-        if (playerModel != null)
-        {
-            playerModel.SetActive(true);
-            Debug.Log("Player character shown again");
-        }
+        if (playerModel != null) playerModel.SetActive(true);
         
-        // NOTIFY GAME PROGRESS MANAGER THAT NUN DIALOGUE IS COMPLETE
+        // NOTIFY GAME PROGRESS MANAGER
         GameProgressManager progressManager = FindObjectOfType<GameProgressManager>();
         if (progressManager != null)
         {
             progressManager.CompleteNunDialogue();
-            Debug.Log("Nun dialogue completed - notified GameProgressManager");
-        }
-        else
-        {
-            Debug.LogWarning("GameProgressManager not found in scene! Make sure it exists.");
         }
         
         // SHOW MAP PROMPT
         ShowMapPrompt();
         
+        // MARK THAT PLAYER HAS RECEIVED THE MAP
+        if (GameProgressManager.Instance != null)
+        {
+            GameProgressManager.Instance.MapReceived();
+            Debug.Log("Map received notification sent to GameProgressManager");
+        }
+        
         // FADE BACK IN
-        Debug.Log("Starting fade back in");
         elapsed = 0f;
         while (elapsed < fadeDuration)
         {
@@ -261,14 +227,13 @@ public class DialogueSystem : MonoBehaviour
             yield return null;
         }
         cg.alpha = 0f;
-        
-        Debug.Log("Fade back complete - screen is normal");
     }
     
     void ShowMapPrompt()
     {
         Canvas canvas = GetComponent<Canvas>();
         if (canvas == null) canvas = FindObjectOfType<Canvas>();
+        if (canvas == null) return;
         
         GameObject textObj = new GameObject("MapPromptText");
         textObj.transform.SetParent(canvas.transform, false);
@@ -299,9 +264,7 @@ public class DialogueSystem : MonoBehaviour
             cg.alpha = Mathf.Lerp(0f, 1f, elapsed);
             yield return null;
         }
-        
         yield return new WaitForSeconds(3f);
-        
         elapsed = 0f;
         while (elapsed < 1f)
         {
@@ -309,7 +272,6 @@ public class DialogueSystem : MonoBehaviour
             cg.alpha = Mathf.Lerp(1f, 0f, elapsed);
             yield return null;
         }
-        
         Destroy(textObj);
     }
 }

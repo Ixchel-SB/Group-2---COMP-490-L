@@ -5,8 +5,9 @@ public class GameProgressManager : MonoBehaviour
     public static GameProgressManager Instance;
     
     private bool nunDialogueCompleted = false;
-    private bool vendorDialogueCompleted = false; // NEW
-    private string selectedFood = ""; // NEW - store chosen food
+    private bool vendorDialogueCompleted = false;
+    private bool mapReceived = false;
+    private string selectedFood = "";
     
     void Awake()
     {
@@ -27,7 +28,6 @@ public class GameProgressManager : MonoBehaviour
         Time.timeScale = 1f;
         Debug.Log("GameProgressManager Start - Time.timeScale = " + Time.timeScale);
         
-        // Load saved food if exists
         selectedFood = PlayerPrefs.GetString("SelectedFood", "");
     }
     
@@ -36,7 +36,6 @@ public class GameProgressManager : MonoBehaviour
         nunDialogueCompleted = true;
         Debug.Log("=== NUN DIALOGUE COMPLETED ===");
         
-        // Find and enable the PlazaTriggerText
         PlazaTriggerText plazaTrigger = FindObjectOfType<PlazaTriggerText>();
         if (plazaTrigger != null)
         {
@@ -57,6 +56,17 @@ public class GameProgressManager : MonoBehaviour
         PlayerPrefs.Save();
         Debug.Log("=== VENDOR DIALOGUE COMPLETED ===");
         Debug.Log("Selected food: " + food);
+    }
+    
+    public void MapReceived()
+    {
+        mapReceived = true;
+        Debug.Log("=== MAP RECEIVED ===");
+    }
+    
+    public bool HasMap()
+    {
+        return mapReceived;
     }
     
     public bool IsNunDialogueCompleted()

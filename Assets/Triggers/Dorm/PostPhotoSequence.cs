@@ -47,6 +47,10 @@ public class PostPhotoSequence : MonoBehaviour
     public string timeText2 = "Monday 7:15am";
     public string storyText = "Metzly and her roommates ate their dinner and began talking about starting school tomorrow.\n\nOnce they all finished, Metzly and Valentina took a bath and got all their supplies ready for school while the boys procrastinated the whole day.\n\nThe girls were able to go to bed early.";
     
+    [Header("Thinking Text After Teleport")]
+    public string thinkingAfterTeleport = "I should head to school now. I'm sure everyone else headed there early cause it's the first day of school.";
+    public float thinkingAfterTeleportDuration = 4f;
+    
     private CanvasGroup thinkingCanvasGroup;
     private CanvasGroup blackCanvasGroup;
     private bool isSequenceRunning = false;
@@ -198,59 +202,25 @@ public class PostPhotoSequence : MonoBehaviour
     {
         Debug.Log("=== PLAYING ARROW DIALOGUE ===");
         
-        // Freeze player
         FreezePlayer();
         
-        // Hide arrow
         if (arrowObject1 != null)
         {
             arrowObject1.SetActive(false);
         }
         
-        // Fade to black
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 1f;
-            Debug.Log("Screen black - dialogue will appear");
-        }
-        
-        // Show dialogue lines on black screen
         for (int i = 0; i < selfDialogueLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogueOnBlackScreen(selfDialogueLines[i], "Meztly"));
+            yield return StartCoroutine(ShowDialogue(selfDialogueLines[i], "Meztly"));
         }
         
-        // Show Valentina lines on black screen
         for (int i = 0; i < valentinaLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogueOnBlackScreen(valentinaLines[i], "Valentina"));
+            yield return StartCoroutine(ShowDialogue(valentinaLines[i], "Valentina"));
         }
         
-        // Fade back to normal
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 0f;
-            Debug.Log("Screen back to normal");
-        }
-        
-        // Unfreeze player
         UnfreezePlayer();
         
-        // Re-enable the girls room door
         if (girlsRoomDoor != null)
         {
             girlsRoomDoor.enabled = true;
@@ -265,33 +235,39 @@ public class PostPhotoSequence : MonoBehaviour
         Debug.Log("=== POST-PHOTO SEQUENCE COMPLETED ===");
     }
     
-    IEnumerator ShowDialogueOnBlackScreen(string line, string speaker)
+    IEnumerator ShowDialogue(string line, string speaker)
     {
-        // Show dialogue panel
+        Debug.Log($"Showing dialogue: {speaker}: {line}");
+        
+        if (dialoguePanel == null)
+        {
+            Debug.LogError("DialoguePanel is NULL!");
+            yield break;
+        }
+        
         dialoguePanel.SetActive(true);
         speakerText.text = speaker + ":";
         dialogueText.text = "";
         
-        // Type out the text
         foreach (char c in line.ToCharArray())
         {
             dialogueText.text += c;
             yield return new WaitForSeconds(0.05f);
         }
         
-        // Show "Press F to continue" prompt
         if (continueText != null)
+        {
             continueText.gameObject.SetActive(true);
+        }
         
-        // Wait for player to press F
         waitingForF = true;
         yield return new WaitUntil(() => !waitingForF);
         
-        // Hide continue text
         if (continueText != null)
+        {
             continueText.gameObject.SetActive(false);
+        }
         
-        // Hide dialogue panel
         dialoguePanel.SetActive(false);
     }
     
@@ -318,7 +294,6 @@ public class PostPhotoSequence : MonoBehaviour
             girlsRoomDoor.enabled = false;
         }
         
-        // Enable arrow
         if (arrowObject1 != null)
         {
             arrowObject1.SetActive(true);
@@ -341,11 +316,42 @@ public class PostPhotoSequence : MonoBehaviour
         Debug.Log("Arrow pressed - continuing");
     }
     
+    IEnumerator ShowThinkingTextWithFade(string message, float duration)
+    {
+        if (thinkingText == null) yield break;
+        
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = message;
+        
+        // Fade in
+        float elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            thinkingCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+            yield return null;
+        }
+        thinkingCanvasGroup.alpha = 1f;
+        
+        // Wait
+        yield return new WaitForSeconds(duration);
+        
+        // Fade out
+        elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            thinkingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+            yield return null;
+        }
+        thinkingCanvasGroup.alpha = 0f;
+        thinkingText.gameObject.SetActive(false);
+    }
+    
     IEnumerator RunDoorSequence()
     {
         Debug.Log("=== DOOR SEQUENCE STARTED ===");
         
-        // Freeze player
         FreezePlayer();
         
         if (girlsRoomDoor != null)
@@ -362,6 +368,7 @@ public class PostPhotoSequence : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 1f;
+            Debug.Log("Faded to black for time change");
         }
         
         // Time text 1
@@ -396,27 +403,35 @@ public class PostPhotoSequence : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 0f;
+            Debug.Log("Faded back to normal");
         }
         
-        // Teleport player to bed
+        // Teleport to bed
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null && bedSpawnPoint != null)
         {
+            Debug.Log("Teleporting player to: " + bedSpawnPoint.name + " at position: " + bedSpawnPoint.position);
+            
+            CharacterController cc = playerObj.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+            
             Transform root = playerObj.transform.root;
             root.position = bedSpawnPoint.position;
             root.rotation = bedSpawnPoint.rotation;
             playerObj.transform.position = bedSpawnPoint.position;
             
-            CharacterController cc = playerObj.GetComponent<CharacterController>();
-            if (cc != null)
-            {
-                cc.enabled = false;
-                playerObj.transform.position = bedSpawnPoint.position;
-                cc.enabled = true;
-            }
+            if (cc != null) cc.enabled = true;
+            
+            Debug.Log("Player teleported to: " + playerObj.transform.position);
+        }
+        else
+        {
+            Debug.LogError($"Player or bedSpawnPoint is NULL!");
         }
         
-        // Unfreeze player
+        // Show thinking text after teleport
+        yield return StartCoroutine(ShowThinkingTextWithFade(thinkingAfterTeleport, thinkingAfterTeleportDuration));
+        
         UnfreezePlayer();
         
         if (girlsRoomDoor != null)

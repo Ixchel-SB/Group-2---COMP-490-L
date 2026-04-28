@@ -29,13 +29,14 @@ public class DormManager : MonoBehaviour
     [Header("Valentina Characters")]
     public GameObject valentinaHallway;
     public GameObject valentinaRoom;
+    public GameObject valentinaSecondModel; // Drag Valentina_Male Laying Pose here
     public Transform valentinaRoomPosition;
     
     [Header("Thinking Text")]
     public TextMeshProUGUI thinkingText;
     public string eatReminderMessage = "I should eat the food I brought before I forget";
     public string eatReminderDoorMessage = "I should eat my food before exploring more...";
-    public string photoFoundMessage = "Who is that man with my sister... I wonder if Valentina knows something about this.";
+    public string photoFoundMessage = "Who is that man with my sister? I wonder if Valentina knows something about this.";
     public float thinkingTextDuration = 3f;
     
     [Header("Backyard")]
@@ -147,6 +148,11 @@ public class DormManager : MonoBehaviour
             }
         }
         
+        if (valentinaSecondModel != null)
+        {
+            valentinaSecondModel.SetActive(true);
+        }
+        
         if (thinkingText != null)
         {
             thinkingCanvasGroup = thinkingText.GetComponent<CanvasGroup>();
@@ -167,6 +173,17 @@ public class DormManager : MonoBehaviour
             {
                 rotationY += mouseDelta.x * photoRotationSpeed;
                 rotationX += -mouseDelta.y * photoRotationSpeed;
+                rotationX = Mathf.Clamp(rotationX, -90f, 90f);
+                photoObject.transform.rotation = Quaternion.Euler(rotationX, rotationY, 0);
+            }
+            
+            float arrowX = Input.GetAxis("Horizontal") * photoRotationSpeed * 2;
+            float arrowY = Input.GetAxis("Vertical") * photoRotationSpeed * 2;
+            
+            if ((arrowX != 0 || arrowY != 0) && photoObject != null)
+            {
+                rotationY += arrowX;
+                rotationX += -arrowY;
                 rotationX = Mathf.Clamp(rotationX, -90f, 90f);
                 photoObject.transform.rotation = Quaternion.Euler(rotationX, rotationY, 0);
             }
@@ -192,7 +209,7 @@ public class DormManager : MonoBehaviour
         thinkingText.text = message;
         thinkingCanvasGroup.alpha = 1f;
         
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(10f);
         
         thinkingText.gameObject.SetActive(false);
     }
@@ -406,7 +423,7 @@ public class DormManager : MonoBehaviour
         
         if (thinkingText != null)
         {
-            StartCoroutine(ShowTempText("Move your mouse to rotate the photo\nPress F to continue", 2f));
+            StartCoroutine(ShowTempText("Move mouse or use arrow keys to rotate photo\nPress F to continue", 2f));
         }
     }
     
@@ -515,6 +532,13 @@ public class DormManager : MonoBehaviour
         
         Debug.Log("Waiting for player to complete Valentina's second dialogue...");
         yield return new WaitUntil(() => secondDialogueCompleted);
+        
+        // Hide Valentina's second model after dialogue ends
+        if (valentinaSecondModel != null)
+        {
+            valentinaSecondModel.SetActive(false);
+            Debug.Log("Valentina's second model disappeared");
+        }
         
         if (postPhotoSequence != null)
         {
