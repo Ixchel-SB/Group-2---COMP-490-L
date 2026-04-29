@@ -92,6 +92,12 @@ public class DialogueSystem : MonoBehaviour
         }
     }
     
+    // ADD THIS METHOD - Used by PauseManager to check if dialogue is active
+    public bool IsDialogueActive()
+    {
+        return isDialogueActive;
+    }
+    
     public void StartDialogue()
     {
         currentLine = 0;

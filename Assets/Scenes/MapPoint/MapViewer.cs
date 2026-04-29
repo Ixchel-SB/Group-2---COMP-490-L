@@ -59,6 +59,12 @@ public class MapViewer : MonoBehaviour
         }
     }
     
+    // ADD THIS METHOD - Used by PauseManager to check if map is open
+    public bool IsMapOpen()
+    {
+        return isMapOpen;
+    }
+    
     void OpenMap()
     {
         Debug.Log("OpenMap called");

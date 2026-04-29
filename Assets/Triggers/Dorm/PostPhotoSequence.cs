@@ -120,6 +120,12 @@ public class PostPhotoSequence : MonoBehaviour
         }
     }
     
+    // ADD THIS METHOD - Used by PauseManager to check if sequence is running
+    public bool IsSequenceRunning()
+    {
+        return isSequenceRunning;
+    }
+    
     public void SetExitDoor(DormDoorInteraction door)
     {
         exitDoor = door;
@@ -138,11 +144,6 @@ public class PostPhotoSequence : MonoBehaviour
         hasStarted = true;
         isSequenceRunning = true;
         StartCoroutine(RunSequence());
-    }
-    
-    public bool IsSequenceRunning()
-    {
-        return isSequenceRunning;
     }
     
     public bool HasArrowPressed()
@@ -323,7 +324,6 @@ public class PostPhotoSequence : MonoBehaviour
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = message;
         
-        // Fade in
         float elapsed = 0f;
         while (elapsed < 0.5f)
         {
@@ -333,10 +333,8 @@ public class PostPhotoSequence : MonoBehaviour
         }
         thinkingCanvasGroup.alpha = 1f;
         
-        // Wait
         yield return new WaitForSeconds(duration);
         
-        // Fade out
         elapsed = 0f;
         while (elapsed < 0.5f)
         {
@@ -357,7 +355,6 @@ public class PostPhotoSequence : MonoBehaviour
         if (girlsRoomDoor != null)
             girlsRoomDoor.enabled = false;
         
-        // Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -371,28 +368,24 @@ public class PostPhotoSequence : MonoBehaviour
             Debug.Log("Faded to black for time change");
         }
         
-        // Time text 1
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = timeText1;
         thinkingCanvasGroup.alpha = 1f;
         yield return new WaitForSeconds(3f);
         thinkingText.gameObject.SetActive(false);
         
-        // Story text
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = storyText;
         thinkingCanvasGroup.alpha = 1f;
         yield return new WaitForSeconds(5f);
         thinkingText.gameObject.SetActive(false);
         
-        // Time text 2
         thinkingText.gameObject.SetActive(true);
         thinkingText.text = timeText2;
         thinkingCanvasGroup.alpha = 1f;
         yield return new WaitForSeconds(3f);
         thinkingText.gameObject.SetActive(false);
         
-        // Fade back to normal
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -406,7 +399,6 @@ public class PostPhotoSequence : MonoBehaviour
             Debug.Log("Faded back to normal");
         }
         
-        // Teleport to bed
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null && bedSpawnPoint != null)
         {
@@ -429,7 +421,6 @@ public class PostPhotoSequence : MonoBehaviour
             Debug.LogError($"Player or bedSpawnPoint is NULL!");
         }
         
-        // Show thinking text after teleport
         yield return StartCoroutine(ShowThinkingTextWithFade(thinkingAfterTeleport, thinkingAfterTeleportDuration));
         
         UnfreezePlayer();
