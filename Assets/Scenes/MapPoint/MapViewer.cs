@@ -17,11 +17,15 @@ public class MapViewer : MonoBehaviour
     private Vector3 originalCameraPos;
     private Quaternion originalCameraRot;
     private GameObject playerModel;
-    
+    private PauseManager3D pauseManager; // Reference to pause manager
+
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player");
         mainCamera = Camera.main;
+        
+        // Find PauseManager
+        pauseManager = FindObjectOfType<PauseManager3D>();
         
         if (player != null)
         {
@@ -47,7 +51,18 @@ public class MapViewer : MonoBehaviour
     
     void Update()
     {
-        if (GameProgressManager.Instance != null && GameProgressManager.Instance.HasMap())
+        // Check if game is paused before allowing map to open
+        bool isGamePaused = false;
+        if (pauseManager != null)
+        {
+            isGamePaused = pauseManager.IsGamePaused();
+        }
+        
+        // Only allow map to open if:
+        // 1. Player has the map
+        // 2. Game is NOT paused
+        // 3. Map is not already open (or we're closing it)
+        if (GameProgressManager.Instance != null && GameProgressManager.Instance.HasMap() && !isGamePaused)
         {
             if (Input.GetKeyDown(KeyCode.M))
             {
@@ -57,9 +72,15 @@ public class MapViewer : MonoBehaviour
                     OpenMap();
             }
         }
+        
+        // Also handle closing map if game gets paused while map is open
+        if (isMapOpen && isGamePaused)
+        {
+            CloseMap();
+        }
     }
     
-    // ADD THIS METHOD - Used by PauseManager to check if map is open
+    // Public method for PauseManager to check if map is open
     public bool IsMapOpen()
     {
         return isMapOpen;

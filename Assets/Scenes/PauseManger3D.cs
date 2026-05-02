@@ -324,5 +324,11 @@ public class PauseManager3D : MonoBehaviour
         else
             Debug.Log("Interaction ended - pause unblocked");
     }
+    
+    // Public method for other scripts to check if game is paused
+    public bool IsGamePaused()
+    {
+        return isPaused;
+    }
 }
 

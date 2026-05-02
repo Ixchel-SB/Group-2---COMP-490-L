@@ -22,15 +22,11 @@ public class PostPhotoSequence : MonoBehaviour
     
     [Header("Girls Room Door")]
     public RoomDoorInteraction girlsRoomDoor;
-    public Transform bedSpawnPoint;
-    
-    [Header("Door Block Message")]
-    public string doorBlockMessage = "I should finish unpacking...";
     
     [Header("Self Dialogue Lines")]
     public string[] selfDialogueLines = new string[]
     {
-        "I finally finished unpacking my things while Valentina prepared dinner...",
+        "It's 3:30pm already. At least I finally finished unpacking my things while Valentina prepared dinner...",
         "I'm lucky Valentina was kind enough to explain to me our syllabus and schedule. I can't believe I have to read this whole book by the end of next week... I have so much to do",
         "And I haven't been able to stop thinking about the incident ever since I got here. I was barely able to get off the train knowing the accident wasn't that far away from the train station..."
     };
@@ -41,15 +37,6 @@ public class PostPhotoSequence : MonoBehaviour
         "DINNER IS READY!",
         "BETTER HURRY UP BEFORE IT'S GONE!"
     };
-    
-    [Header("Time Texts")]
-    public string timeText1 = "Sunday 3:30pm";
-    public string timeText2 = "Monday 7:15am";
-    public string storyText = "Metzly and her roommates ate their dinner and began talking about starting school tomorrow.\n\nOnce they all finished, Metzly and Valentina took a bath and got all their supplies ready for school while the boys procrastinated the whole day.\n\nThe girls were able to go to bed early.";
-    
-    [Header("Thinking Text After Teleport")]
-    public string thinkingAfterTeleport = "I should head to school now. I'm sure everyone else headed there early cause it's the first day of school.";
-    public float thinkingAfterTeleportDuration = 4f;
     
     private CanvasGroup thinkingCanvasGroup;
     private CanvasGroup blackCanvasGroup;
@@ -120,10 +107,46 @@ public class PostPhotoSequence : MonoBehaviour
         }
     }
     
-    // ADD THIS METHOD - Used by PauseManager to check if sequence is running
     public bool IsSequenceRunning()
     {
         return isSequenceRunning;
+    }
+    
+    public bool HasArrowPressed()
+    {
+        return arrowPressed;
+    }
+    
+    public bool CanUseDoorAfterSequence()
+    {
+        return arrowPressed && !doorSequenceTriggered;
+    }
+    
+    public void StartDoorSequence()
+    {
+        if (!arrowPressed || doorSequenceTriggered) return;
+        doorSequenceTriggered = true;
+        Debug.Log("Door sequence started - sequence complete, door can be used normally now");
+    }
+    
+    public void ShowDoorBlockMessage()
+    {
+        if (!arrowPressed)
+        {
+            StartCoroutine(DisplayDoorBlockMessage());
+        }
+    }
+    
+    IEnumerator DisplayDoorBlockMessage()
+    {
+        if (thinkingText != null)
+        {
+            thinkingText.gameObject.SetActive(true);
+            thinkingText.text = "I should finish unpacking...";
+            thinkingCanvasGroup.alpha = 1f;
+            yield return new WaitForSeconds(2f);
+            thinkingText.gameObject.SetActive(false);
+        }
     }
     
     public void SetExitDoor(DormDoorInteraction door)
@@ -144,31 +167,6 @@ public class PostPhotoSequence : MonoBehaviour
         hasStarted = true;
         isSequenceRunning = true;
         StartCoroutine(RunSequence());
-    }
-    
-    public bool HasArrowPressed()
-    {
-        return arrowPressed;
-    }
-    
-    public bool CanUseDoorAfterSequence()
-    {
-        return arrowPressed && !doorSequenceTriggered;
-    }
-    
-    public void ShowDoorBlockMessage()
-    {
-        if (!arrowPressed)
-        {
-            StartCoroutine(DisplayDoorBlockMessage());
-        }
-    }
-    
-    public void StartDoorSequence()
-    {
-        if (!arrowPressed || doorSequenceTriggered) return;
-        doorSequenceTriggered = true;
-        StartCoroutine(RunDoorSequence());
     }
     
     public void OnArrowPressed()
@@ -272,15 +270,6 @@ public class PostPhotoSequence : MonoBehaviour
         dialoguePanel.SetActive(false);
     }
     
-    IEnumerator DisplayDoorBlockMessage()
-    {
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = doorBlockMessage;
-        thinkingCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(2f);
-        thinkingText.gameObject.SetActive(false);
-    }
-    
     IEnumerator RunSequence()
     {
         Debug.Log("=== RUNSEQUENCE STARTED ===");
@@ -315,119 +304,5 @@ public class PostPhotoSequence : MonoBehaviour
         }
         
         Debug.Log("Arrow pressed - continuing");
-    }
-    
-    IEnumerator ShowThinkingTextWithFade(string message, float duration)
-    {
-        if (thinkingText == null) yield break;
-        
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = message;
-        
-        float elapsed = 0f;
-        while (elapsed < 0.5f)
-        {
-            elapsed += Time.deltaTime;
-            thinkingCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
-            yield return null;
-        }
-        thinkingCanvasGroup.alpha = 1f;
-        
-        yield return new WaitForSeconds(duration);
-        
-        elapsed = 0f;
-        while (elapsed < 0.5f)
-        {
-            elapsed += Time.deltaTime;
-            thinkingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-            yield return null;
-        }
-        thinkingCanvasGroup.alpha = 0f;
-        thinkingText.gameObject.SetActive(false);
-    }
-    
-    IEnumerator RunDoorSequence()
-    {
-        Debug.Log("=== DOOR SEQUENCE STARTED ===");
-        
-        FreezePlayer();
-        
-        if (girlsRoomDoor != null)
-            girlsRoomDoor.enabled = false;
-        
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 1f;
-            Debug.Log("Faded to black for time change");
-        }
-        
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = timeText1;
-        thinkingCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(3f);
-        thinkingText.gameObject.SetActive(false);
-        
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = storyText;
-        thinkingCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(5f);
-        thinkingText.gameObject.SetActive(false);
-        
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = timeText2;
-        thinkingCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(3f);
-        thinkingText.gameObject.SetActive(false);
-        
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 0f;
-            Debug.Log("Faded back to normal");
-        }
-        
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null && bedSpawnPoint != null)
-        {
-            Debug.Log("Teleporting player to: " + bedSpawnPoint.name + " at position: " + bedSpawnPoint.position);
-            
-            CharacterController cc = playerObj.GetComponent<CharacterController>();
-            if (cc != null) cc.enabled = false;
-            
-            Transform root = playerObj.transform.root;
-            root.position = bedSpawnPoint.position;
-            root.rotation = bedSpawnPoint.rotation;
-            playerObj.transform.position = bedSpawnPoint.position;
-            
-            if (cc != null) cc.enabled = true;
-            
-            Debug.Log("Player teleported to: " + playerObj.transform.position);
-        }
-        else
-        {
-            Debug.LogError($"Player or bedSpawnPoint is NULL!");
-        }
-        
-        yield return StartCoroutine(ShowThinkingTextWithFade(thinkingAfterTeleport, thinkingAfterTeleportDuration));
-        
-        UnfreezePlayer();
-        
-        if (girlsRoomDoor != null)
-            girlsRoomDoor.enabled = true;
-        
-        Debug.Log("=== DOOR SEQUENCE COMPLETED ===");
     }
 }
