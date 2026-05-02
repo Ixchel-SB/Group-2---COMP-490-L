@@ -54,12 +54,15 @@ public class RoomDoorInteraction : MonoBehaviour
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
             PostPhotoSequence postSequence = FindObjectOfType<PostPhotoSequence>();
+            
+            // If arrow has been pressed, trigger door sequence (time change)
             if (postSequence != null && postSequence.HasArrowPressed() && postSequence.CanUseDoorAfterSequence())
             {
                 postSequence.StartDoorSequence();
                 return;
             }
             
+            // If sequence is running but arrow not pressed yet, show "I should finish unpacking" message
             if (postSequence != null && postSequence.IsSequenceRunning() && !postSequence.HasArrowPressed())
             {
                 postSequence.ShowDoorBlockMessage();
@@ -152,6 +155,18 @@ public class RoomDoorInteraction : MonoBehaviour
             player.transform.position = teleportPosition.position;
             player.transform.rotation = teleportPosition.rotation;
             Debug.Log("Player teleported to: " + teleportPosition.name);
+            
+            // Check if this is the entrance door and start Samael dialogue after teleport
+            if (doorName == "Entrance" || gameObject.name == "Entrance(1)" || gameObject.name.Contains("Entrance"))
+            {
+                DiningRoomInteraction diningRoom = FindObjectOfType<DiningRoomInteraction>();
+                if (diningRoom != null && diningRoom.IsChairInteractionDone())
+                {
+                    // Small delay to let the teleport settle
+                    yield return new WaitForSeconds(0.1f);
+                    diningRoom.StartSamaelDialogue();
+                }
+            }
         }
         
         if (blackCanvasGroup != null)

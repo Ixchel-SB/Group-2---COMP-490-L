@@ -8,6 +8,12 @@ public class DiningRoomInteraction : MonoBehaviour
     public TextMeshProUGUI thinkingText;
     public GameObject blackScreenPanel;
     
+    [Header("Dialogue UI Elements")]
+    public GameObject dialoguePanel;
+    public TextMeshProUGUI speakerText;
+    public TextMeshProUGUI dialogueText;
+    public TextMeshProUGUI continueText;
+    
     [Header("Interaction Settings")]
     public KeyCode interactKey = KeyCode.F;
     public float interactionRange = 3f;
@@ -15,11 +21,11 @@ public class DiningRoomInteraction : MonoBehaviour
     [Header("Doors to Lock")]
     public GameObject dormDoor;
     public GameObject entranceDoor;
+    public Transform outsideDormPosition;
     private Collider dormDoorCollider;
     private Collider entranceDoorCollider;
     private MonoBehaviour dormDoorScript;
     private MonoBehaviour entranceDoorScript;
-    private bool entranceDoorLocked = false;
     
     [Header("Character Models - OLD (to disable)")]
     public GameObject oldMarcelo;
@@ -30,21 +36,42 @@ public class DiningRoomInteraction : MonoBehaviour
     public GameObject newElio;
     public GameObject newValentina;
     public GameObject newSamael;
+    public GameObject oldSamael; // The Samael model to remove after dialogue
     
-    [Header("Thinking Text for Door")]
+    [Header("Thinking Texts")]
     public string doorThinkingText = "Should hurry up before the food is gone";
     public float doorThinkingDuration = 2f;
     
+    public string hurryText = "Press F to sit at the table";
+    public float hurryTextDuration = 2f;
+    
     [Header("Story Text")]
-    [TextArea(10, 15)]
+    [TextArea(10, 20)]
     public string storyText = "Metzly and her roommates ate their dinner and decided to go to the cemetery tomorrow before school starts, hoping this would clear Metzly's mind. Once they all finished, Metzly and Valentina took a bath and got all their supplies ready for school while the boys procrastinated the whole day. The girls were able to go to bed early.";
     
     [Header("Time Text")]
     public string timeText = "Monday 6:15am";
     
-    [Header("Thinking After Chair")]
+    [Header("Thinking After")]
     public string thinkingAfterText = "I should head to the cemetery... I'm sure everyone else headed there by now.";
     public float thinkingAfterDuration = 4f;
+    
+    [Header("Samael Dialogue Lines")]
+    public string[] samaelDialogueLines = new string[]
+    {
+        "HEY!",
+        "Hey! Are you listening! *burp*",
+        "The stupid nun sent me to wake you all up. So get up!",
+        "*burp* *spits on floor*",
+        "Good for you. *burp*"
+    };
+    
+    public string[] metzlyDialogueLines = new string[]
+    {
+        "*Gasp*",
+        "Yes",
+        "Umm... We're already woke up."
+    };
     
     private CanvasGroup thinkingCanvasGroup;
     private CanvasGroup blackCanvasGroup;
@@ -54,12 +81,11 @@ public class DiningRoomInteraction : MonoBehaviour
     private bool playerInTrigger = false;
     private bool closetSequenceCompleted = false;
     private bool chairInteractionDone = false;
-    private bool door1Interacted = false;
+    private bool samaelDialogueDone = false;
     
     private GameObject player;
     private MonoBehaviour playerController;
     private PostPhotoSequence postPhotoSequence;
-    private GameObject door1Trigger;
     
     void Start()
     {
@@ -71,9 +97,6 @@ public class DiningRoomInteraction : MonoBehaviour
         // Find player
         player = GameObject.FindGameObjectWithTag("Player");
         
-        // Find Door 1 trigger (the girls room door with arrow)
-        door1Trigger = GameObject.Find("GirlsRoomDoor"); // Adjust name as needed
-        
         // Setup thinking text
         if (thinkingText != null)
         {
@@ -83,6 +106,12 @@ public class DiningRoomInteraction : MonoBehaviour
             thinkingCanvasGroup.alpha = 0f;
             thinkingText.gameObject.SetActive(false);
         }
+        
+        // Setup dialogue UI
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
+        if (continueText != null)
+            continueText.text = "Press F to continue";
         
         // Setup black screen
         if (blackScreenPanel != null)
@@ -104,42 +133,42 @@ public class DiningRoomInteraction : MonoBehaviour
         {
             entranceDoorCollider = entranceDoor.GetComponent<Collider>();
             entranceDoorScript = entranceDoor.GetComponent<MonoBehaviour>();
-            // Lock Entrance(1) at start
-            LockEntranceDoor();
         }
         
-        // Initially disable new models
+        // Initially disable new models (they will appear after closet interaction)
         if (newMarcelo != null) newMarcelo.SetActive(false);
         if (newElio != null) newElio.SetActive(false);
         if (newValentina != null) newValentina.SetActive(false);
         if (newSamael != null) newSamael.SetActive(false);
+        if (oldSamael != null) oldSamael.SetActive(true);
         
         // Make sure old models are enabled at start
         if (oldMarcelo != null) oldMarcelo.SetActive(true);
         if (oldElio != null) oldElio.SetActive(true);
+        
+        // Initially lock entrance door until chair interaction is done
+        LockEntranceDoor();
         
         Debug.Log("=== DINING ROOM INTERACTION READY ===");
     }
     
     void LockEntranceDoor()
     {
-        if (entranceDoor != null && !entranceDoorLocked)
+        if (entranceDoor != null)
         {
             if (entranceDoorCollider != null) entranceDoorCollider.enabled = false;
             if (entranceDoorScript != null) entranceDoorScript.enabled = false;
-            entranceDoorLocked = true;
-            Debug.Log("Entrance(1) LOCKED - Cannot interact before chair sequence");
+            Debug.Log("Entrance(1) LOCKED until chair interaction");
         }
     }
     
     void UnlockEntranceDoor()
     {
-        if (entranceDoor != null && entranceDoorLocked)
+        if (entranceDoor != null)
         {
             if (entranceDoorCollider != null) entranceDoorCollider.enabled = true;
             if (entranceDoorScript != null) entranceDoorScript.enabled = true;
-            entranceDoorLocked = false;
-            Debug.Log("Entrance(1) UNLOCKED - Can now interact");
+            Debug.Log("Entrance(1) UNLOCKED - can now exit to outside");
         }
     }
     
@@ -157,48 +186,15 @@ public class DiningRoomInteraction : MonoBehaviour
             }
         }
         
-        // Check for Door 1 interaction (press F on the girls room door)
-        if (!door1Interacted && closetSequenceCompleted && !chairInteractionDone && door1Trigger != null && player != null)
-        {
-            float distanceToDoor1 = Vector3.Distance(door1Trigger.transform.position, player.transform.position);
-            if (distanceToDoor1 < 3f && Input.GetKeyDown(interactKey))
-            {
-                door1Interacted = true;
-                Debug.Log("Door 1 interacted - showing thinking text");
-                StartCoroutine(ShowDoorThinkingText());
-            }
-        }
-        
         if (waitingForF && Input.GetKeyDown(KeyCode.F))
         {
             waitingForF = false;
         }
         
-        // Only allow dining room interaction AFTER closet sequence is done, before chair interaction
+        // Only allow dining room interaction AFTER closet sequence is done and chair not used yet
         if (!hasInteracted && !isSequenceRunning && playerInTrigger && closetSequenceCompleted && !chairInteractionDone && Input.GetKeyDown(interactKey))
         {
             StartCoroutine(RunSequence());
-        }
-    }
-    
-    IEnumerator ShowDoorThinkingText()
-    {
-        if (thinkingText != null)
-        {
-            thinkingText.gameObject.SetActive(true);
-            thinkingText.text = doorThinkingText;
-            thinkingCanvasGroup.alpha = 1f;
-            yield return new WaitForSeconds(doorThinkingDuration);
-            
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                thinkingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-                yield return null;
-            }
-            thinkingCanvasGroup.alpha = 0f;
-            thinkingText.gameObject.SetActive(false);
         }
     }
     
@@ -216,7 +212,7 @@ public class DiningRoomInteraction : MonoBehaviour
                 if (thinkingText != null)
                 {
                     thinkingText.gameObject.SetActive(true);
-                    thinkingText.text = "Press F to sit at the table";
+                    thinkingText.text = hurryText;
                     thinkingCanvasGroup.alpha = 1f;
                 }
             }
@@ -253,13 +249,13 @@ public class DiningRoomInteraction : MonoBehaviour
         if (oldElio != null) oldElio.SetActive(false);
     }
     
-    void DisableNewModelsExceptSamael()
+    void RemoveDiningRoomModels()
     {
-        Debug.Log("=== DISABLING NEW MODELS (Except Samael) ===");
+        Debug.Log("=== REMOVING DINING ROOM MODELS (except Samael) ===");
         if (newMarcelo != null) newMarcelo.SetActive(false);
         if (newElio != null) newElio.SetActive(false);
         if (newValentina != null) newValentina.SetActive(false);
-        // Samael stays enabled
+        // Samael stays
     }
     
     void LockDoors()
@@ -300,6 +296,143 @@ public class DiningRoomInteraction : MonoBehaviour
         Cursor.visible = false;
     }
     
+    // Public method to show thinking text when pressing F on door
+    public void ShowDoorThinkingText()
+    {
+        if (!chairInteractionDone)
+        {
+            StartCoroutine(ShowDoorThinkingTextCoroutine());
+        }
+    }
+    
+    // Public method to check if chair interaction is done (for entrance door)
+    public bool IsChairInteractionDone()
+    {
+        return chairInteractionDone;
+    }
+    
+    // Public method to start Samael dialogue when exiting through entrance door
+    public void StartSamaelDialogue()
+    {
+        if (!samaelDialogueDone && chairInteractionDone)
+        {
+            StartCoroutine(SamaelDialogueSequence());
+        }
+    }
+    
+    IEnumerator ShowDoorThinkingTextCoroutine()
+    {
+        if (thinkingText != null)
+        {
+            thinkingText.gameObject.SetActive(true);
+            thinkingText.text = doorThinkingText;
+            thinkingCanvasGroup.alpha = 1f;
+            yield return new WaitForSeconds(doorThinkingDuration);
+            
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                thinkingCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            thinkingCanvasGroup.alpha = 0f;
+            thinkingText.gameObject.SetActive(false);
+        }
+    }
+    
+    IEnumerator ShowDialogue(string line, string speaker)
+    {
+        if (dialoguePanel == null)
+        {
+            Debug.LogError("DialoguePanel is NULL!");
+            yield break;
+        }
+        
+        dialoguePanel.SetActive(true);
+        speakerText.text = speaker + ":";
+        dialogueText.text = "";
+        
+        foreach (char c in line.ToCharArray())
+        {
+            dialogueText.text += c;
+            yield return new WaitForSeconds(0.05f);
+        }
+        
+        if (continueText != null)
+        {
+            continueText.gameObject.SetActive(true);
+        }
+        
+        waitingForF = true;
+        yield return new WaitUntil(() => !waitingForF);
+        
+        if (continueText != null)
+        {
+            continueText.gameObject.SetActive(false);
+        }
+        
+        dialoguePanel.SetActive(false);
+    }
+    
+    IEnumerator SamaelDialogueSequence()
+    {
+        Debug.Log("=== SAMAEL DIALOGUE SEQUENCE STARTED ===");
+        
+        samaelDialogueDone = true;
+        FreezePlayer();
+        
+        // Dialogue sequence
+        yield return StartCoroutine(ShowDialogue(samaelDialogueLines[0], "Samael"));
+        yield return StartCoroutine(ShowDialogue(metzlyDialogueLines[0], "Metzly"));
+        yield return StartCoroutine(ShowDialogue(samaelDialogueLines[1], "Samael"));
+        yield return StartCoroutine(ShowDialogue(metzlyDialogueLines[1], "Metzly"));
+        yield return StartCoroutine(ShowDialogue(metzlyDialogueLines[2], "Metzly"));
+        yield return StartCoroutine(ShowDialogue(samaelDialogueLines[2], "Samael"));
+        yield return StartCoroutine(ShowDialogue(metzlyDialogueLines[2], "Metzly"));
+        yield return StartCoroutine(ShowDialogue(samaelDialogueLines[3], "Samael"));
+        yield return StartCoroutine(ShowDialogue(samaelDialogueLines[4], "Samael"));
+        
+        // Fade to black
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 1f;
+            Debug.Log("Faded to black");
+        }
+        
+        // Remove old Samael model
+        if (oldSamael != null)
+        {
+            oldSamael.SetActive(false);
+            Debug.Log("Old Samael model removed");
+        }
+        
+        // Fade back
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 0f;
+            Debug.Log("Faded back");
+        }
+        
+        UnfreezePlayer();
+        
+        Debug.Log("=== SAMAEL DIALOGUE SEQUENCE COMPLETED ===");
+    }
+    
     IEnumerator RunSequence()
     {
         Debug.Log("=== DINING ROOM SEQUENCE STARTED ===");
@@ -308,7 +441,7 @@ public class DiningRoomInteraction : MonoBehaviour
         isSequenceRunning = true;
         chairInteractionDone = true;
         
-        // Hide the prompt
+        // Hide prompt
         if (thinkingText != null)
         {
             thinkingText.gameObject.SetActive(false);
@@ -328,14 +461,26 @@ public class DiningRoomInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 1f;
+            Debug.Log("Faded to black");
         }
         
-        // Show story text with wider text area
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = storyText;
-        thinkingCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(8f);
-        thinkingText.gameObject.SetActive(false);
+        // Show story text
+        if (thinkingText != null)
+        {
+            RectTransform rect = thinkingText.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                Vector2 size = rect.sizeDelta;
+                size.x = 1200f;
+                rect.sizeDelta = size;
+            }
+            
+            thinkingText.gameObject.SetActive(true);
+            thinkingText.text = storyText;
+            thinkingCanvasGroup.alpha = 1f;
+            yield return new WaitForSeconds(8f);
+            thinkingText.gameObject.SetActive(false);
+        }
         
         // Show time text
         thinkingText.gameObject.SetActive(true);
@@ -355,20 +500,28 @@ public class DiningRoomInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 0f;
+            Debug.Log("Faded back");
         }
         
         // Show final thinking text
         yield return StartCoroutine(ShowThinkingText(thinkingAfterText, thinkingAfterDuration));
         
-        // Disable new models except Samael
-        DisableNewModelsExceptSamael();
+        // Remove dining room models (except Samael)
+        RemoveDiningRoomModels();
         
-        // Unlock Entrance(1) door after chair interaction
+        // Unlock doors
+        UnlockDoors();
         UnlockEntranceDoor();
         
-        UnlockDoors();
         UnfreezePlayer();
         isSequenceRunning = false;
+        
+        // Disable the trigger so player can't interact again
+        Collider triggerCollider = GetComponent<Collider>();
+        if (triggerCollider != null)
+        {
+            triggerCollider.enabled = false;
+        }
         
         Debug.Log("=== DINING ROOM SEQUENCE COMPLETED ===");
     }
