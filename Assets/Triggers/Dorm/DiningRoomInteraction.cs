@@ -35,18 +35,22 @@ public class DiningRoomInteraction : MonoBehaviour
     public GameObject newMarcelo;
     public GameObject newElio;
     public GameObject newValentina;
-    public GameObject newSamael;
-    public GameObject oldSamael; // The Samael model to remove after dialogue
+    public GameObject samaelModel;  // The Samael model that appears for dialogue
+    
+    [Header("Samael Dialogue Camera")]
+    public Transform samaelCamPos;
+    private Camera mainCamera;
+    private Vector3 originalCameraPos;
+    private Quaternion originalCameraRot;
     
     [Header("Thinking Texts")]
     public string doorThinkingText = "Should hurry up before the food is gone";
     public float doorThinkingDuration = 2f;
     
     public string hurryText = "Press F to sit at the table";
-    public float hurryTextDuration = 2f;
     
     [Header("Story Text")]
-    [TextArea(10, 20)]
+    [TextArea(5, 10)]
     public string storyText = "Metzly and her roommates ate their dinner and decided to go to the cemetery tomorrow before school starts, hoping this would clear Metzly's mind. Once they all finished, Metzly and Valentina took a bath and got all their supplies ready for school while the boys procrastinated the whole day. The girls were able to go to bed early.";
     
     [Header("Time Text")]
@@ -86,18 +90,31 @@ public class DiningRoomInteraction : MonoBehaviour
     private GameObject player;
     private MonoBehaviour playerController;
     private PostPhotoSequence postPhotoSequence;
+    private GameObject playerModel;
     
     void Start()
     {
         Debug.Log("=== DINING ROOM INTERACTION START ===");
         
-        // Find PostPhotoSequence to check when closet interaction completes
+        mainCamera = Camera.main;
         postPhotoSequence = FindObjectOfType<PostPhotoSequence>();
-        
-        // Find player
         player = GameObject.FindGameObjectWithTag("Player");
         
-        // Setup thinking text
+        if (player != null)
+        {
+            playerController = player.GetComponent<MonoBehaviour>();
+            if (playerController == null)
+            {
+                Transform playerArmature = player.transform.Find("PlayerArmature");
+                if (playerArmature != null)
+                    playerController = playerArmature.GetComponent<MonoBehaviour>();
+            }
+            
+            SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (skinnedMesh != null)
+                playerModel = skinnedMesh.gameObject;
+        }
+        
         if (thinkingText != null)
         {
             thinkingCanvasGroup = thinkingText.GetComponent<CanvasGroup>();
@@ -105,15 +122,16 @@ public class DiningRoomInteraction : MonoBehaviour
                 thinkingCanvasGroup = thinkingText.gameObject.AddComponent<CanvasGroup>();
             thinkingCanvasGroup.alpha = 0f;
             thinkingText.gameObject.SetActive(false);
+            
+            thinkingText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 800f);
+            thinkingText.enableWordWrapping = true;
         }
         
-        // Setup dialogue UI
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
         if (continueText != null)
             continueText.text = "Press F to continue";
         
-        // Setup black screen
         if (blackScreenPanel != null)
         {
             blackCanvasGroup = blackScreenPanel.GetComponent<CanvasGroup>();
@@ -122,7 +140,6 @@ public class DiningRoomInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 0f;
         }
         
-        // Setup doors
         if (dormDoor != null)
         {
             dormDoorCollider = dormDoor.GetComponent<Collider>();
@@ -135,21 +152,18 @@ public class DiningRoomInteraction : MonoBehaviour
             entranceDoorScript = entranceDoor.GetComponent<MonoBehaviour>();
         }
         
-        // Initially disable new models (they will appear after closet interaction)
         if (newMarcelo != null) newMarcelo.SetActive(false);
         if (newElio != null) newElio.SetActive(false);
         if (newValentina != null) newValentina.SetActive(false);
-        if (newSamael != null) newSamael.SetActive(false);
-        if (oldSamael != null) oldSamael.SetActive(true);
+        if (samaelModel != null) samaelModel.SetActive(false);
         
-        // Make sure old models are enabled at start
         if (oldMarcelo != null) oldMarcelo.SetActive(true);
         if (oldElio != null) oldElio.SetActive(true);
         
-        // Initially lock entrance door until chair interaction is done
         LockEntranceDoor();
         
         Debug.Log("=== DINING ROOM INTERACTION READY ===");
+        Debug.Log($"SamaelCamPos assigned: {samaelCamPos != null}");
     }
     
     void LockEntranceDoor()
@@ -158,7 +172,6 @@ public class DiningRoomInteraction : MonoBehaviour
         {
             if (entranceDoorCollider != null) entranceDoorCollider.enabled = false;
             if (entranceDoorScript != null) entranceDoorScript.enabled = false;
-            Debug.Log("Entrance(1) LOCKED until chair interaction");
         }
     }
     
@@ -168,19 +181,16 @@ public class DiningRoomInteraction : MonoBehaviour
         {
             if (entranceDoorCollider != null) entranceDoorCollider.enabled = true;
             if (entranceDoorScript != null) entranceDoorScript.enabled = true;
-            Debug.Log("Entrance(1) UNLOCKED - can now exit to outside");
         }
     }
     
     void Update()
     {
-        // Check if closet sequence has completed
         if (!closetSequenceCompleted && postPhotoSequence != null)
         {
             if (postPhotoSequence.HasArrowPressed())
             {
                 closetSequenceCompleted = true;
-                Debug.Log("=== CLOSET SEQUENCE COMPLETED! Enabling new dining room models ===");
                 EnableNewModels();
                 DisableOldModels();
             }
@@ -191,7 +201,6 @@ public class DiningRoomInteraction : MonoBehaviour
             waitingForF = false;
         }
         
-        // Only allow dining room interaction AFTER closet sequence is done and chair not used yet
         if (!hasInteracted && !isSequenceRunning && playerInTrigger && closetSequenceCompleted && !chairInteractionDone && Input.GetKeyDown(interactKey))
         {
             StartCoroutine(RunSequence());
@@ -204,11 +213,9 @@ public class DiningRoomInteraction : MonoBehaviour
         {
             playerInTrigger = true;
             player = other.gameObject;
-            playerController = player.GetComponent<MonoBehaviour>();
             
             if (closetSequenceCompleted && !chairInteractionDone)
             {
-                Debug.Log("Player entered chair trigger area - Press F to sit at table");
                 if (thinkingText != null)
                 {
                     thinkingText.gameObject.SetActive(true);
@@ -225,37 +232,28 @@ public class DiningRoomInteraction : MonoBehaviour
         {
             playerInTrigger = false;
             player = null;
-            
-            if (thinkingText != null)
-            {
-                thinkingText.gameObject.SetActive(false);
-            }
+            if (thinkingText != null) thinkingText.gameObject.SetActive(false);
         }
     }
     
     void EnableNewModels()
     {
-        Debug.Log("=== ENABLING NEW DINING ROOM MODELS ===");
         if (newMarcelo != null) newMarcelo.SetActive(true);
         if (newElio != null) newElio.SetActive(true);
         if (newValentina != null) newValentina.SetActive(true);
-        if (newSamael != null) newSamael.SetActive(true);
     }
     
     void DisableOldModels()
     {
-        Debug.Log("=== DISABLING OLD MODELS ===");
         if (oldMarcelo != null) oldMarcelo.SetActive(false);
         if (oldElio != null) oldElio.SetActive(false);
     }
     
     void RemoveDiningRoomModels()
     {
-        Debug.Log("=== REMOVING DINING ROOM MODELS (except Samael) ===");
         if (newMarcelo != null) newMarcelo.SetActive(false);
         if (newElio != null) newElio.SetActive(false);
         if (newValentina != null) newValentina.SetActive(false);
-        // Samael stays
     }
     
     void LockDoors()
@@ -278,45 +276,91 @@ public class DiningRoomInteraction : MonoBehaviour
     
     void FreezePlayer()
     {
-        if (playerController != null)
-        {
-            playerController.enabled = false;
-        }
+        if (playerController != null) playerController.enabled = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
     
     void UnfreezePlayer()
     {
-        if (playerController != null)
-        {
-            playerController.enabled = true;
-        }
+        if (playerController != null) playerController.enabled = true;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
     
-    // Public method to show thinking text when pressing F on door
-    public void ShowDoorThinkingText()
+    void HidePlayerModel()
     {
-        if (!chairInteractionDone)
+        if (playerModel != null) playerModel.SetActive(false);
+        if (player != null) player.SetActive(false);
+        Debug.Log("Player model hidden");
+    }
+    
+    void ShowPlayerModel()
+    {
+        if (player != null) player.SetActive(true);
+        if (playerModel != null) playerModel.SetActive(true);
+        Debug.Log("Player model shown");
+    }
+    
+    void MoveCameraToSamaelPosition()
+    {
+        if (mainCamera != null && samaelCamPos != null)
         {
-            StartCoroutine(ShowDoorThinkingTextCoroutine());
+            originalCameraPos = mainCamera.transform.position;
+            originalCameraRot = mainCamera.transform.rotation;
+            
+            mainCamera.transform.position = samaelCamPos.position;
+            mainCamera.transform.rotation = samaelCamPos.rotation;
+            Debug.Log($"Camera moved to Samael position: {samaelCamPos.position}");
+        }
+        else
+        {
+            Debug.LogError($"Cannot move camera! mainCamera={mainCamera != null}, samaelCamPos={samaelCamPos != null}");
         }
     }
     
-    // Public method to check if chair interaction is done (for entrance door)
+    void RestoreCameraPosition()
+    {
+        if (mainCamera != null)
+        {
+            mainCamera.transform.position = originalCameraPos;
+            mainCamera.transform.rotation = originalCameraRot;
+            Debug.Log("Camera restored");
+        }
+    }
+    
+    public void ShowDoorThinkingText()
+    {
+        if (!chairInteractionDone) StartCoroutine(ShowDoorThinkingTextCoroutine());
+    }
+    
     public bool IsChairInteractionDone()
     {
         return chairInteractionDone;
     }
     
-    // Public method to start Samael dialogue when exiting through entrance door
+    public bool IsSamaelDialogueDone()
+    {
+        return samaelDialogueDone;
+    }
+    
     public void StartSamaelDialogue()
     {
+        Debug.Log($"StartSamaelDialogue called - samaelDialogueDone={samaelDialogueDone}, chairInteractionDone={chairInteractionDone}");
         if (!samaelDialogueDone && chairInteractionDone)
         {
+            Debug.Log("Starting Samael dialogue coroutine...");
+            // Show Samael model before dialogue starts
+            if (samaelModel != null)
+            {
+                samaelModel.SetActive(true);
+                Debug.Log("Samael model activated");
+            }
             StartCoroutine(SamaelDialogueSequence());
+        }
+        else
+        {
+            Debug.LogWarning($"Cannot start Samael dialogue: samaelDialogueDone={samaelDialogueDone}, chairInteractionDone={chairInteractionDone}");
         }
     }
     
@@ -343,11 +387,7 @@ public class DiningRoomInteraction : MonoBehaviour
     
     IEnumerator ShowDialogue(string line, string speaker)
     {
-        if (dialoguePanel == null)
-        {
-            Debug.LogError("DialoguePanel is NULL!");
-            yield break;
-        }
+        if (dialoguePanel == null) yield break;
         
         dialoguePanel.SetActive(true);
         speakerText.text = speaker + ":";
@@ -359,19 +399,12 @@ public class DiningRoomInteraction : MonoBehaviour
             yield return new WaitForSeconds(0.05f);
         }
         
-        if (continueText != null)
-        {
-            continueText.gameObject.SetActive(true);
-        }
+        if (continueText != null) continueText.gameObject.SetActive(true);
         
         waitingForF = true;
         yield return new WaitUntil(() => !waitingForF);
         
-        if (continueText != null)
-        {
-            continueText.gameObject.SetActive(false);
-        }
-        
+        if (continueText != null) continueText.gameObject.SetActive(false);
         dialoguePanel.SetActive(false);
     }
     
@@ -379,10 +412,20 @@ public class DiningRoomInteraction : MonoBehaviour
     {
         Debug.Log("=== SAMAEL DIALOGUE SEQUENCE STARTED ===");
         
-        samaelDialogueDone = true;
+        samaelDialogueDone = false;
+        
+        Debug.Log("Freezing player...");
         FreezePlayer();
         
-        // Dialogue sequence
+        Debug.Log("Hiding player model...");
+        HidePlayerModel();
+        
+        Debug.Log("Moving camera to Samael position...");
+        MoveCameraToSamaelPosition();
+        
+        yield return new WaitForSeconds(0.2f);
+        
+        Debug.Log("Starting dialogue...");
         yield return StartCoroutine(ShowDialogue(samaelDialogueLines[0], "Samael"));
         yield return StartCoroutine(ShowDialogue(metzlyDialogueLines[0], "Metzly"));
         yield return StartCoroutine(ShowDialogue(samaelDialogueLines[1], "Samael"));
@@ -393,7 +436,7 @@ public class DiningRoomInteraction : MonoBehaviour
         yield return StartCoroutine(ShowDialogue(samaelDialogueLines[3], "Samael"));
         yield return StartCoroutine(ShowDialogue(samaelDialogueLines[4], "Samael"));
         
-        // Fade to black
+        Debug.Log("Fading to black...");
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -404,17 +447,16 @@ public class DiningRoomInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 1f;
-            Debug.Log("Faded to black");
         }
         
-        // Remove old Samael model
-        if (oldSamael != null)
+        Debug.Log("Removing Samael model...");
+        if (samaelModel != null)
         {
-            oldSamael.SetActive(false);
-            Debug.Log("Old Samael model removed");
+            samaelModel.SetActive(false);
+            Debug.Log("Samael model removed");
         }
         
-        // Fade back
+        Debug.Log("Fading back...");
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -425,105 +467,20 @@ public class DiningRoomInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 0f;
-            Debug.Log("Faded back");
         }
         
+        Debug.Log("Restoring camera...");
+        RestoreCameraPosition();
+        
+        Debug.Log("Showing player model...");
+        ShowPlayerModel();
+        
+        Debug.Log("Unfreezing player...");
         UnfreezePlayer();
+        
+        samaelDialogueDone = true;
         
         Debug.Log("=== SAMAEL DIALOGUE SEQUENCE COMPLETED ===");
-    }
-    
-    IEnumerator RunSequence()
-    {
-        Debug.Log("=== DINING ROOM SEQUENCE STARTED ===");
-        
-        hasInteracted = true;
-        isSequenceRunning = true;
-        chairInteractionDone = true;
-        
-        // Hide prompt
-        if (thinkingText != null)
-        {
-            thinkingText.gameObject.SetActive(false);
-        }
-        
-        LockDoors();
-        FreezePlayer();
-        
-        // Fade to black
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 1f;
-            Debug.Log("Faded to black");
-        }
-        
-        // Show story text
-        if (thinkingText != null)
-        {
-            RectTransform rect = thinkingText.GetComponent<RectTransform>();
-            if (rect != null)
-            {
-                Vector2 size = rect.sizeDelta;
-                size.x = 1200f;
-                rect.sizeDelta = size;
-            }
-            
-            thinkingText.gameObject.SetActive(true);
-            thinkingText.text = storyText;
-            thinkingCanvasGroup.alpha = 1f;
-            yield return new WaitForSeconds(8f);
-            thinkingText.gameObject.SetActive(false);
-        }
-        
-        // Show time text
-        thinkingText.gameObject.SetActive(true);
-        thinkingText.text = timeText;
-        thinkingCanvasGroup.alpha = 1f;
-        yield return new WaitForSeconds(3f);
-        thinkingText.gameObject.SetActive(false);
-        
-        // Fade back from black
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 0f;
-            Debug.Log("Faded back");
-        }
-        
-        // Show final thinking text
-        yield return StartCoroutine(ShowThinkingText(thinkingAfterText, thinkingAfterDuration));
-        
-        // Remove dining room models (except Samael)
-        RemoveDiningRoomModels();
-        
-        // Unlock doors
-        UnlockDoors();
-        UnlockEntranceDoor();
-        
-        UnfreezePlayer();
-        isSequenceRunning = false;
-        
-        // Disable the trigger so player can't interact again
-        Collider triggerCollider = GetComponent<Collider>();
-        if (triggerCollider != null)
-        {
-            triggerCollider.enabled = false;
-        }
-        
-        Debug.Log("=== DINING ROOM SEQUENCE COMPLETED ===");
     }
     
     IEnumerator ShowThinkingText(string message, float duration)
@@ -555,9 +512,84 @@ public class DiningRoomInteraction : MonoBehaviour
         thinkingText.gameObject.SetActive(false);
     }
     
+    IEnumerator RunSequence()
+    {
+        Debug.Log("=== CHAIR SEQUENCE STARTED ===");
+        
+        hasInteracted = true;
+        isSequenceRunning = true;
+        
+        if (thinkingText != null) thinkingText.gameObject.SetActive(false);
+        
+        LockDoors();
+        FreezePlayer();
+        
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 1f;
+        }
+        
+        if (thinkingText != null)
+        {
+            thinkingText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 800f);
+            thinkingText.fontSize = 24;
+            
+            thinkingText.gameObject.SetActive(true);
+            thinkingText.text = storyText;
+            thinkingCanvasGroup.alpha = 1f;
+            yield return new WaitForSeconds(8f);
+            thinkingText.gameObject.SetActive(false);
+        }
+        
+        thinkingText.gameObject.SetActive(true);
+        thinkingText.text = timeText;
+        thinkingCanvasGroup.alpha = 1f;
+        yield return new WaitForSeconds(3f);
+        thinkingText.gameObject.SetActive(false);
+        
+        if (blackCanvasGroup != null)
+        {
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 0f;
+        }
+        
+        yield return StartCoroutine(ShowThinkingText(thinkingAfterText, thinkingAfterDuration));
+        
+        RemoveDiningRoomModels();
+        UnlockDoors();
+        UnlockEntranceDoor();
+        UnfreezePlayer();
+        isSequenceRunning = false;
+        chairInteractionDone = true;
+        
+        Debug.Log("=== CHAIR SEQUENCE COMPLETED - chairInteractionDone = true ===");
+        
+        Collider triggerCollider = GetComponent<Collider>();
+        if (triggerCollider != null) triggerCollider.enabled = false;
+    }
+    
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, interactionRange);
+        if (samaelCamPos != null)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(samaelCamPos.position, 0.3f);
+            Gizmos.DrawLine(samaelCamPos.position, samaelCamPos.position + samaelCamPos.forward * 2f);
+        }
     }
 }

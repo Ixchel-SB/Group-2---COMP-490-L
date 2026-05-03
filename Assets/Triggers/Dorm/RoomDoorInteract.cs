@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class RoomDoorInteraction : MonoBehaviour
+public class RoomDoorInteract : MonoBehaviour
 {
     [Header("Door Settings")]
     public string doorName = "Door";
@@ -55,14 +55,12 @@ public class RoomDoorInteraction : MonoBehaviour
         {
             PostPhotoSequence postSequence = FindObjectOfType<PostPhotoSequence>();
             
-            // If arrow has been pressed, trigger door sequence (time change)
             if (postSequence != null && postSequence.HasArrowPressed() && postSequence.CanUseDoorAfterSequence())
             {
                 postSequence.StartDoorSequence();
                 return;
             }
             
-            // If sequence is running but arrow not pressed yet, show "I should finish unpacking" message
             if (postSequence != null && postSequence.IsSequenceRunning() && !postSequence.HasArrowPressed())
             {
                 postSequence.ShowDoorBlockMessage();
@@ -136,6 +134,23 @@ public class RoomDoorInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
         }
         
+        // Find DiningRoomInteraction
+        DiningRoomInteraction diningRoom = FindObjectOfType<DiningRoomInteraction>();
+        
+        // Check if this is the entrance door - looking at GameObject name
+        bool isEntranceDoor = (gameObject.name == "Entrance(1)" || gameObject.name.Contains("Entrance"));
+        
+        Debug.Log($"Door name: {gameObject.name}, isEntranceDoor: {isEntranceDoor}");
+        
+        if (diningRoom != null)
+        {
+            Debug.Log($"Found DiningRoomInteraction, ChairInteractionDone: {diningRoom.IsChairInteractionDone()}");
+        }
+        else
+        {
+            Debug.LogWarning("DiningRoomInteraction not found in scene!");
+        }
+        
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -155,18 +170,6 @@ public class RoomDoorInteraction : MonoBehaviour
             player.transform.position = teleportPosition.position;
             player.transform.rotation = teleportPosition.rotation;
             Debug.Log("Player teleported to: " + teleportPosition.name);
-            
-            // Check if this is the entrance door and start Samael dialogue after teleport
-            if (doorName == "Entrance" || gameObject.name == "Entrance(1)" || gameObject.name.Contains("Entrance"))
-            {
-                DiningRoomInteraction diningRoom = FindObjectOfType<DiningRoomInteraction>();
-                if (diningRoom != null && diningRoom.IsChairInteractionDone())
-                {
-                    // Small delay to let the teleport settle
-                    yield return new WaitForSeconds(0.1f);
-                    diningRoom.StartSamaelDialogue();
-                }
-            }
         }
         
         if (blackCanvasGroup != null)
@@ -179,6 +182,17 @@ public class RoomDoorInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 0f;
+        }
+        
+        // Start Samael dialogue AFTER teleport and fade back
+        if (isEntranceDoor && diningRoom != null && diningRoom.IsChairInteractionDone())
+        {
+            Debug.Log(">>> STARTING SAMAEL DIALOGUE <<<");
+            diningRoom.StartSamaelDialogue();
+        }
+        else
+        {
+            Debug.Log($"Samael dialogue NOT starting. isEntranceDoor={isEntranceDoor}, diningRoom={diningRoom != null}, chairDone={(diningRoom != null ? diningRoom.IsChairInteractionDone().ToString() : "N/A")}");
         }
         
         isTransitioning = false;

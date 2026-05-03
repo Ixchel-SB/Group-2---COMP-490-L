@@ -21,7 +21,7 @@ public class PostPhotoSequence : MonoBehaviour
     private DormDoorInteraction exitDoor;
     
     [Header("Girls Room Door")]
-    public RoomDoorInteraction girlsRoomDoor;
+    public RoomDoorInteract girlsRoomDoor;  // Changed from RoomDoorInteraction to RoomDoorInteract
     
     [Header("Self Dialogue Lines")]
     public string[] selfDialogueLines = new string[]

@@ -20,7 +20,12 @@ public class DormDoorInteraction : MonoBehaviour
     public TextMeshProUGUI blockMessageText;
     public string blockMessage = "I don't want to go inside yet. I want to get something to eat first...";
     public string sequenceLockMessage = "I can't leave yet... something is happening.";
+    public string cemeteryMessage = "I need to hurry to the cemetery before it gets late.";
     public float messageDuration = 3f;
+    
+    [Header("Samael Dialogue")]
+    public bool isSamaelExitDoor = false;
+    public Transform outsideDormPosition;
     
     private bool playerInRange = false;
     private GameObject player;
@@ -28,6 +33,8 @@ public class DormDoorInteraction : MonoBehaviour
     private bool isTransitioning = false;
     private CanvasGroup blackCanvasGroup;
     private bool isLocked = false;
+    private bool samaelDialogueTriggered = false;
+    private bool samaelDialogueCompleted = false;
     
     void Start()
     {
@@ -64,6 +71,13 @@ public class DormDoorInteraction : MonoBehaviour
     {
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
+            // If Samael dialogue is completed, show cemetery message
+            if (samaelDialogueCompleted)
+            {
+                StartCoroutine(ShowCemeteryMessage());
+                return;
+            }
+            
             if (isLocked)
             {
                 StartCoroutine(ShowSequenceLockMessage());
@@ -81,6 +95,39 @@ public class DormDoorInteraction : MonoBehaviour
         }
     }
     
+    IEnumerator ShowCemeteryMessage()
+    {
+        Debug.Log("Showing cemetery message - door locked permanently");
+        
+        if (blockMessageText != null)
+        {
+            CanvasGroup cg = blockMessageText.GetComponent<CanvasGroup>();
+            blockMessageText.text = cemeteryMessage;
+            blockMessageText.gameObject.SetActive(true);
+            
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            cg.alpha = 1f;
+            
+            yield return new WaitForSeconds(messageDuration);
+            
+            elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                cg.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            cg.alpha = 0f;
+            blockMessageText.gameObject.SetActive(false);
+        }
+    }
+    
     public void LockDoor()
     {
         isLocked = true;
@@ -91,6 +138,13 @@ public class DormDoorInteraction : MonoBehaviour
     {
         isLocked = false;
         Debug.Log("Dorm door unlocked - can exit now");
+    }
+    
+    public void SetSamaelDialogueCompleted()
+    {
+        samaelDialogueCompleted = true;
+        isLocked = true; // Keep door locked permanently
+        Debug.Log("Samael dialogue completed - door permanently locked with cemetery message");
     }
     
     IEnumerator ShowSequenceLockMessage()
@@ -191,6 +245,24 @@ public class DormDoorInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
         }
         
+        DiningRoomInteraction diningRoom = FindObjectOfType<DiningRoomInteraction>();
+        
+        Debug.Log($"isSamaelExitDoor: {isSamaelExitDoor}");
+        if (diningRoom != null)
+        {
+            Debug.Log($"ChairInteractionDone: {diningRoom.IsChairInteractionDone()}");
+        }
+        
+        Transform targetPosition = insideDormPosition;
+        bool shouldTriggerSamael = false;
+        
+        if (isSamaelExitDoor && diningRoom != null && diningRoom.IsChairInteractionDone() && !samaelDialogueTriggered)
+        {
+            targetPosition = outsideDormPosition;
+            shouldTriggerSamael = true;
+            Debug.Log("Using outside dorm position for Samael exit");
+        }
+        
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -207,11 +279,11 @@ public class DormDoorInteraction : MonoBehaviour
         
         yield return new WaitForSeconds(waitTime);
         
-        if (player != null && insideDormPosition != null)
+        if (player != null && targetPosition != null)
         {
-            player.transform.position = insideDormPosition.position;
-            player.transform.rotation = insideDormPosition.rotation;
-            Debug.Log("Player moved to inside dorm position");
+            player.transform.position = targetPosition.position;
+            player.transform.rotation = targetPosition.rotation;
+            Debug.Log("Player moved to: " + targetPosition.name);
         }
         
         if (blackCanvasGroup != null)
@@ -226,7 +298,54 @@ public class DormDoorInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 0f;
         }
         
-        Debug.Log("Fade complete - player inside dorm");
+        Debug.Log("Fade complete - player teleported");
+        
+        // Start Samael dialogue if this is the exit door and chair is done
+        if (shouldTriggerSamael && diningRoom != null)
+        {
+            samaelDialogueTriggered = true;
+            Debug.Log(">>> STARTING SAMAEL DIALOGUE <<<");
+            
+            // Lock the door during dialogue
+            LockDoor();
+            
+            // Start the dialogue
+            diningRoom.StartSamaelDialogue();
+            
+            // Wait for dialogue to complete (check every frame)
+            yield return new WaitUntil(() => diningRoom.IsSamaelDialogueDone());
+            
+            Debug.Log("Samael dialogue completed - fading to black");
+            
+            // Fade to black
+            if (blackCanvasGroup != null)
+            {
+                float elapsed = 0f;
+                while (elapsed < fadeDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+                    yield return null;
+                }
+                blackCanvasGroup.alpha = 1f;
+                
+                yield return new WaitForSeconds(0.5f);
+                
+                elapsed = 0f;
+                while (elapsed < fadeDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+                    yield return null;
+                }
+                blackCanvasGroup.alpha = 0f;
+            }
+            
+            // Set Samael dialogue as completed - door stays locked permanently
+            SetSamaelDialogueCompleted();
+            Debug.Log("Samael dialogue completed - door permanently locked with cemetery message");
+        }
+        
         isTransitioning = false;
     }
     

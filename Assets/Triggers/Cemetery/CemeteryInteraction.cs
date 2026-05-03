@@ -18,47 +18,58 @@ public class CemeteryInteraction : MonoBehaviour
     public KeyCode interactKey = KeyCode.F;
     public float interactionRange = 3f;
     
-    [Header("Character Models - OLD (to remove)")]
-    public GameObject oldMarcelo;     // Marcelo_Sitting (dining room version)
-    public GameObject oldElio;        // Elio_Sitting (dining room version)
-    public GameObject oldValentina;   // Valentina_Sitting (dining room version)
+    [Header("Character Models - DINING ROOM VERSIONS (to remove)")]
+    public GameObject diningRoomMarcelo;     // Marcelo_Sitting (dining room)
+    public GameObject diningRoomElio;        // Elio_Sitting (dining room)
+    public GameObject diningRoomValentina;   // Valentina_Sitting (dining room)
     
-    [Header("Character Models - NEW (to enable at cemetery)")]
-    public GameObject newMarcelo;     // Marcelo_Male Standing Pose
-    public GameObject newElio;        // Elio_Head Nod
-    public GameObject newValentina;   // Valentina_Sitting Idle
+    [Header("Character Models - CEMETERY INITIAL VERSIONS (to remove after interaction)")]
+    public GameObject cemeteryInitialMarcelo;    // Marcelo_Male Standing Pose
+    public GameObject cemeteryInitialElio;       // Elio_Head Nod
+    public GameObject cemeteryInitialValentina;  // Valentina_Sitting Idle
+    
+    [Header("Character Models - CEMETERY FINAL VERSIONS (to enable after dialogue)")]
+    public GameObject cemeteryFinalMarcelo;      // Marcelo_Standing W_Briefcase Idle
+    public GameObject cemeteryFinalValentina;    // Valentina_Sitting Talking
+    // Elio stays the same (Elio_Head Nod)
     
     [Header("Thinking Text")]
     public string cemeteryThinkingText = "I should go to the cemetery... everyone is probably waiting for me.";
     public float cemeteryThinkingDuration = 3f;
     
-    [Header("Dialogue Lines")]
+    [Header("Dialogue Lines (in order)")]
     [TextArea(3, 5)]
-    public string[] marceloDialogueLines = new string[]
+    public string[] dialogueLines = new string[]
     {
-        "About time you showed up!",
-        "We were starting to think you got lost."
+        "Sorry I'm late... I had a lot to do.",  // Metzly
+        "About time! We've been waiting forever.",  // Elio
+        "Yeah, don't keep us waiting like that again.",  // Marcelo
+        "Let's not argue. She's here now and that's what matters.",  // Valentina
+        "You're right. Let's head to the cemetery.",  // Marcelo & Metzly together
+        "It's getting dark soon. We should hurry.",  // Elio
+        "The cemetery is just ahead.",  // Valentina
+        "Wait... do you hear that?",  // Elio
+        "Hear what? I don't hear anything.",  // Metzly
+        "It's probably just the wind. Let's keep moving.",  // Marcelo
+        "I hope you're right...",  // Elio
+        "Come on, everyone. Stay close together."  // Valentina
     };
     
-    [TextArea(3, 5)]
-    public string[] elioDialogueLines = new string[]
+    [Header("Speakers for each dialogue line")]
+    public string[] speakers = new string[]
     {
-        "Yeah, we've been waiting forever.",
-        "The cemetery is this way."
-    };
-    
-    [TextArea(3, 5)]
-    public string[] valentinaDialogueLines = new string[]
-    {
-        "Don't be too hard on her. She had a lot to do.",
-        "Let's go before it gets dark."
-    };
-    
-    [TextArea(3, 5)]
-    public string[] metzlyDialogueLines = new string[]
-    {
-        "Sorry I'm late... I had to take care of a few things.",
-        "I'm ready now."
+        "Metzly",
+        "Elio",
+        "Marcelo",
+        "Valentina",
+        "Marcelo & Metzly",
+        "Elio",
+        "Valentina",
+        "Elio",
+        "Metzly",
+        "Marcelo",
+        "Elio",
+        "Valentina"
     };
     
     [Header("Final Thinking Text")]
@@ -71,7 +82,6 @@ public class CemeteryInteraction : MonoBehaviour
     private bool isSequenceRunning = false;
     private bool waitingForF = false;
     private bool playerInRange = false;
-    private bool modelsSwapped = false;
     
     private GameObject player;
     private MonoBehaviour playerController;
@@ -123,10 +133,14 @@ public class CemeteryInteraction : MonoBehaviour
         // Create interaction prompt above the character
         CreateInteractionPrompt();
         
-        // Initially new models are disabled
-        if (newMarcelo != null) newMarcelo.SetActive(false);
-        if (newElio != null) newElio.SetActive(false);
-        if (newValentina != null) newValentina.SetActive(false);
+        // Initially cemetery models are disabled
+        if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
+        if (cemeteryInitialElio != null) cemeteryInitialElio.SetActive(false);
+        if (cemeteryInitialValentina != null) cemeteryInitialValentina.SetActive(false);
+        
+        // Initially final cemetery models are disabled
+        if (cemeteryFinalMarcelo != null) cemeteryFinalMarcelo.SetActive(false);
+        if (cemeteryFinalValentina != null) cemeteryFinalValentina.SetActive(false);
         
         Debug.Log("=== CEMETERY INTERACTION READY ===");
     }
@@ -294,21 +308,22 @@ public class CemeteryInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 1f;
-            Debug.Log("Faded to black for model swap");
+            Debug.Log("Faded to black for initial model swap");
         }
         
-        // Swap character models
-        Debug.Log("Swapping to cemetery character models...");
+        // Remove dining room character models
+        Debug.Log("Removing dining room character models...");
         
-        if (oldMarcelo != null) oldMarcelo.SetActive(false);
-        if (oldElio != null) oldElio.SetActive(false);
-        if (oldValentina != null) oldValentina.SetActive(false);
+        if (diningRoomMarcelo != null) diningRoomMarcelo.SetActive(false);
+        if (diningRoomElio != null) diningRoomElio.SetActive(false);
+        if (diningRoomValentina != null) diningRoomValentina.SetActive(false);
         
-        if (newMarcelo != null) newMarcelo.SetActive(true);
-        if (newElio != null) newElio.SetActive(true);
-        if (newValentina != null) newValentina.SetActive(true);
+        // Enable INITIAL cemetery character models
+        Debug.Log("Enabling INITIAL cemetery character models...");
         
-        modelsSwapped = true;
+        if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(true);
+        if (cemeteryInitialElio != null) cemeteryInitialElio.SetActive(true);
+        if (cemeteryInitialValentina != null) cemeteryInitialValentina.SetActive(true);
         
         // Fade back
         if (blackCanvasGroup != null)
@@ -324,25 +339,51 @@ public class CemeteryInteraction : MonoBehaviour
             Debug.Log("Faded back");
         }
         
-        // Dialogue sequence
-        for (int i = 0; i < marceloDialogueLines.Length; i++)
+        // Run all dialogue lines in order
+        for (int i = 0; i < dialogueLines.Length; i++)
         {
-            yield return StartCoroutine(ShowDialogue(marceloDialogueLines[i], "Marcelo"));
+            yield return StartCoroutine(ShowDialogue(dialogueLines[i], speakers[i]));
         }
         
-        for (int i = 0; i < elioDialogueLines.Length; i++)
+        // Fade to black for final model swap
+        if (blackCanvasGroup != null)
         {
-            yield return StartCoroutine(ShowDialogue(elioDialogueLines[i], "Elio"));
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 1f;
+            Debug.Log("Faded to black for final model swap");
         }
         
-        for (int i = 0; i < valentinaDialogueLines.Length; i++)
-        {
-            yield return StartCoroutine(ShowDialogue(valentinaDialogueLines[i], "Valentina"));
-        }
+        // Remove INITIAL cemetery models
+        Debug.Log("Removing INITIAL cemetery character models...");
         
-        for (int i = 0; i < metzlyDialogueLines.Length; i++)
+        if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
+        // Elio stays the same - do not disable
+        if (cemeteryInitialValentina != null) cemeteryInitialValentina.SetActive(false);
+        
+        // Enable FINAL cemetery models
+        Debug.Log("Enabling FINAL cemetery character models...");
+        
+        if (cemeteryFinalMarcelo != null) cemeteryFinalMarcelo.SetActive(true);
+        if (cemeteryFinalValentina != null) cemeteryFinalValentina.SetActive(true);
+        
+        // Fade back
+        if (blackCanvasGroup != null)
         {
-            yield return StartCoroutine(ShowDialogue(metzlyDialogueLines[i], "Metzly"));
+            float elapsed = 0f;
+            while (elapsed < 0.5f)
+            {
+                elapsed += Time.deltaTime;
+                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
+                yield return null;
+            }
+            blackCanvasGroup.alpha = 0f;
+            Debug.Log("Faded back");
         }
         
         // Show final thinking text
