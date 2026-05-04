@@ -4,6 +4,29 @@ using UnityEngine.SceneManagement;
 public class PauseMenuQuit : MonoBehaviour
 {
     public PauseManager3D pauseManager;   // drag PauseManager3D here
+    public Transform player;
+
+    public void SaveThenQuitToMainMenu()
+    {
+        PlayerPrefs.SetFloat("PlayerX", player.position.x);
+        PlayerPrefs.SetFloat("PlayerY", player.position.y);
+        PlayerPrefs.SetFloat("PlayerZ", player.position.z);
+        PlayerPrefs.SetInt("HasSavedGame", 1);
+        PlayerPrefs.Save();
+
+        QuitToMainMenu();
+    }
+
+    public void ClearSave()
+    {
+        PlayerPrefs.DeleteKey("HasSavedGame");
+        PlayerPrefs.DeleteKey("PlayerX");
+        PlayerPrefs.DeleteKey("PlayerY");
+        PlayerPrefs.DeleteKey("PlayerZ");
+        PlayerPrefs.Save();
+
+        Debug.Log("Save cleared");
+    }
 
     public void QuitToMainMenu()
     {
