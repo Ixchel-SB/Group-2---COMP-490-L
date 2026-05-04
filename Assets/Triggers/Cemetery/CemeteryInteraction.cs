@@ -23,12 +23,12 @@ public class CemeteryInteraction : MonoBehaviour
     public GameObject diningRoomElio;        // Elio_Sitting (dining room)
     public GameObject diningRoomValentina;   // Valentina_Sitting (dining room)
     
-    [Header("Character Models - CEMETERY INITIAL VERSIONS (to remove after interaction)")]
+    [Header("Character Models - CEMETERY INITIAL VERSIONS (to enable at start)")]
     public GameObject cemeteryInitialMarcelo;    // Marcelo_Male Standing Pose
     public GameObject cemeteryInitialElio;       // Elio_Head Nod
-    public GameObject cemeteryInitialValentina;  // Valentina_Sitting Idle
+    public GameObject cemeteryInitialValentina;  // Valentina_Sitting Idle (THIS script should be on this object)
     
-    [Header("Character Models - CEMETERY FINAL VERSIONS (to enable after dialogue)")]
+    [Header("Character Models - CEMETERY FINAL VERSIONS (to enable AFTER dialogue)")]
     public GameObject cemeteryFinalMarcelo;      // Marcelo_Standing W_Briefcase Idle
     public GameObject cemeteryFinalValentina;    // Valentina_Sitting Talking
     // Elio stays the same (Elio_Head Nod)
@@ -90,7 +90,7 @@ public class CemeteryInteraction : MonoBehaviour
     
     void Start()
     {
-        Debug.Log("=== CEMETERY INTERACTION START ===");
+        Debug.Log("=== CEMETERY INTERACTION START on " + gameObject.name + " ===");
         
         // Find player
         player = GameObject.FindGameObjectWithTag("Player");
@@ -133,25 +133,52 @@ public class CemeteryInteraction : MonoBehaviour
         // Create interaction prompt above the character
         CreateInteractionPrompt();
         
-        // Initially cemetery models are disabled
-        if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
-        if (cemeteryInitialElio != null) cemeteryInitialElio.SetActive(false);
-        if (cemeteryInitialValentina != null) cemeteryInitialValentina.SetActive(false);
+        // IMPORTANT: This script is on Valentina_Sitting Idle
+        // We start with the model disabled, but the script needs to be ready
+        // The model will be enabled by EnableInitialCemeteryModels()
         
-        // Initially final cemetery models are disabled
-        if (cemeteryFinalMarcelo != null) cemeteryFinalMarcelo.SetActive(false);
-        if (cemeteryFinalValentina != null) cemeteryFinalValentina.SetActive(false);
+        Debug.Log("=== CEMETERY INTERACTION READY on " + gameObject.name + " ===");
+    }
+    
+    // Call this method from DiningRoomInteraction to enable initial cemetery models
+    public void EnableInitialCemeteryModels()
+    {
+        Debug.Log("=== ENABLING INITIAL CEMETERY MODELS ===");
         
-        Debug.Log("=== CEMETERY INTERACTION READY ===");
+        // Enable this GameObject (Valentina_Sitting Idle)
+        gameObject.SetActive(true);
+        Debug.Log("Enabled " + gameObject.name);
+        
+        if (cemeteryInitialMarcelo != null)
+        {
+            cemeteryInitialMarcelo.SetActive(true);
+            Debug.Log("Initial Marcelo enabled");
+        }
+        
+        if (cemeteryInitialElio != null)
+        {
+            cemeteryInitialElio.SetActive(true);
+            Debug.Log("Initial Elio enabled");
+        }
+        
+        // Valentina is THIS object, already enabled above
+        if (cemeteryInitialValentina != null && cemeteryInitialValentina != gameObject)
+        {
+            cemeteryInitialValentina.SetActive(true);
+            Debug.Log("Initial Valentina enabled");
+        }
+        
+        // Make sure the prompt shows when player gets close
+        playerInRange = false;
     }
     
     void CreateInteractionPrompt()
     {
-        GameObject prompt = new GameObject("InteractionPrompt");
-        prompt.transform.SetParent(transform);
-        prompt.transform.localPosition = new Vector3(0, 2f, 0);
+        promptObject = new GameObject("InteractionPrompt");
+        promptObject.transform.SetParent(transform);
+        promptObject.transform.localPosition = new Vector3(0, 2f, 0);
         
-        TextMeshProUGUI text = prompt.AddComponent<TextMeshProUGUI>();
+        TextMeshProUGUI text = promptObject.AddComponent<TextMeshProUGUI>();
         text.text = "Press F to talk";
         text.fontSize = 24;
         text.color = Color.white;
@@ -159,13 +186,18 @@ public class CemeteryInteraction : MonoBehaviour
         
         // Add a background
         GameObject background = new GameObject("Background");
-        background.transform.SetParent(prompt.transform);
+        background.transform.SetParent(promptObject.transform);
         UnityEngine.UI.Image image = background.AddComponent<UnityEngine.UI.Image>();
         image.color = new Color(0, 0, 0, 0.7f);
         
-        promptObject = prompt;
-        promptText = text;
-        prompt.SetActive(false);
+        // Set background to cover the text
+        RectTransform bgRect = background.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+        
+        promptObject.SetActive(false);
     }
     
     void Update()
@@ -175,8 +207,8 @@ public class CemeteryInteraction : MonoBehaviour
             waitingForF = false;
         }
         
-        // Check distance to player
-        if (player != null && !hasInteracted && !isSequenceRunning)
+        // Check distance to player - only if this object is active
+        if (player != null && !hasInteracted && !isSequenceRunning && gameObject.activeSelf)
         {
             float distance = Vector3.Distance(transform.position, player.transform.position);
             
@@ -297,48 +329,6 @@ public class CemeteryInteraction : MonoBehaviour
         // Show cemetery thinking text
         yield return StartCoroutine(ShowThinkingText(cemeteryThinkingText, cemeteryThinkingDuration));
         
-        // Fade to black for model swap
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 1f;
-            Debug.Log("Faded to black for initial model swap");
-        }
-        
-        // Remove dining room character models
-        Debug.Log("Removing dining room character models...");
-        
-        if (diningRoomMarcelo != null) diningRoomMarcelo.SetActive(false);
-        if (diningRoomElio != null) diningRoomElio.SetActive(false);
-        if (diningRoomValentina != null) diningRoomValentina.SetActive(false);
-        
-        // Enable INITIAL cemetery character models
-        Debug.Log("Enabling INITIAL cemetery character models...");
-        
-        if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(true);
-        if (cemeteryInitialElio != null) cemeteryInitialElio.SetActive(true);
-        if (cemeteryInitialValentina != null) cemeteryInitialValentina.SetActive(true);
-        
-        // Fade back
-        if (blackCanvasGroup != null)
-        {
-            float elapsed = 0f;
-            while (elapsed < 0.5f)
-            {
-                elapsed += Time.deltaTime;
-                blackCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / 0.5f);
-                yield return null;
-            }
-            blackCanvasGroup.alpha = 0f;
-            Debug.Log("Faded back");
-        }
-        
         // Run all dialogue lines in order
         for (int i = 0; i < dialogueLines.Length; i++)
         {
@@ -392,7 +382,7 @@ public class CemeteryInteraction : MonoBehaviour
         UnfreezePlayer();
         isSequenceRunning = false;
         
-        // Disable the script so player can't interact again
+        // Disable this script so player can't interact again
         this.enabled = false;
         
         Debug.Log("=== CEMETERY SEQUENCE COMPLETED ===");

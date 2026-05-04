@@ -36,6 +36,11 @@ public class DiningRoomInteraction : MonoBehaviour
     public GameObject newElio;
     public GameObject newValentina;
     
+    [Header("Cemetery Models (to enable after Samael dialogue)")]
+    public GameObject cemeteryMarcelo;   // Marcelo_Male Standing
+    public GameObject cemeteryElio;      // Elio_Sitting
+    public GameObject cemeteryValentina; // Valentina_Sitting Idle
+    
     [Header("Samael Model")]
     public GameObject samaelModel;  // Drunk Idle Variation - only appears during Samael dialogue
     
@@ -158,6 +163,11 @@ public class DiningRoomInteraction : MonoBehaviour
         if (newElio != null) newElio.SetActive(false);
         if (newValentina != null) newValentina.SetActive(false);
         
+        // Cemetery models start disabled
+        if (cemeteryMarcelo != null) cemeteryMarcelo.SetActive(false);
+        if (cemeteryElio != null) cemeteryElio.SetActive(false);
+        if (cemeteryValentina != null) cemeteryValentina.SetActive(false);
+        
         // Samael model starts DISABLED - only appears during dialogue
         if (samaelModel != null) samaelModel.SetActive(false);
         
@@ -223,8 +233,29 @@ public class DiningRoomInteraction : MonoBehaviour
             Debug.Log("DormDoor unlocked after Samael dialogue - will show cemetery message");
         }
         
+        // Enable cemetery models
+        EnableCemeteryModels();
+        
         // Entrance door stays locked permanently (don't re-enable)
         Debug.Log("EntranceDoor remains locked permanently");
+    }
+    
+    // Enable cemetery models after Samael dialogue
+    public void EnableCemeteryModels()
+    {
+        Debug.Log("=== ENABLING CEMETERY MODELS ===");
+        
+        // Find the CemeteryInteraction script and call its method to enable initial models
+        CemeteryInteraction cemeteryInteraction = FindObjectOfType<CemeteryInteraction>();
+        if (cemeteryInteraction != null)
+        {
+            cemeteryInteraction.EnableInitialCemeteryModels();
+            Debug.Log("Called EnableInitialCemeteryModels on CemeteryInteraction");
+        }
+        else
+        {
+            Debug.LogWarning("CemeteryInteraction not found!");
+        }
     }
     
     void Update()
