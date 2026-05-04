@@ -35,7 +35,9 @@ public class DiningRoomInteraction : MonoBehaviour
     public GameObject newMarcelo;
     public GameObject newElio;
     public GameObject newValentina;
-    public GameObject samaelModel;  // The Samael model that appears for dialogue
+    
+    [Header("Samael Model")]
+    public GameObject samaelModel;  // Drunk Idle Variation - only appears during Samael dialogue
     
     [Header("Samael Dialogue Camera")]
     public Transform samaelCamPos;
@@ -155,6 +157,8 @@ public class DiningRoomInteraction : MonoBehaviour
         if (newMarcelo != null) newMarcelo.SetActive(false);
         if (newElio != null) newElio.SetActive(false);
         if (newValentina != null) newValentina.SetActive(false);
+        
+        // Samael model starts DISABLED - only appears during dialogue
         if (samaelModel != null) samaelModel.SetActive(false);
         
         if (oldMarcelo != null) oldMarcelo.SetActive(true);
@@ -350,12 +354,6 @@ public class DiningRoomInteraction : MonoBehaviour
         if (!samaelDialogueDone && chairInteractionDone)
         {
             Debug.Log("Starting Samael dialogue coroutine...");
-            // Show Samael model before dialogue starts
-            if (samaelModel != null)
-            {
-                samaelModel.SetActive(true);
-                Debug.Log("Samael model activated");
-            }
             StartCoroutine(SamaelDialogueSequence());
         }
         else
@@ -413,6 +411,13 @@ public class DiningRoomInteraction : MonoBehaviour
         Debug.Log("=== SAMAEL DIALOGUE SEQUENCE STARTED ===");
         
         samaelDialogueDone = false;
+        
+        // Show Samael model before dialogue starts
+        if (samaelModel != null)
+        {
+            samaelModel.SetActive(true);
+            Debug.Log("Samael model activated");
+        }
         
         Debug.Log("Freezing player...");
         FreezePlayer();

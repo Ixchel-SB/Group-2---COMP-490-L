@@ -35,10 +35,18 @@ public class DormDoorInteraction : MonoBehaviour
     private bool isLocked = false;
     private bool samaelDialogueTriggered = false;
     private bool samaelDialogueCompleted = false;
+    private Collider doorCollider;
+    private MonoBehaviour doorScript;
+    private GameObject doorGameObject;
     
     void Start()
     {
         Time.timeScale = 1f;
+        
+        // Get the door's components
+        doorGameObject = gameObject;
+        doorCollider = GetComponent<Collider>();
+        doorScript = GetComponent<MonoBehaviour>();
         
         if (interactionPrompt != null)
         {
@@ -69,6 +77,13 @@ public class DormDoorInteraction : MonoBehaviour
     
     void Update()
     {
+        // During Samael dialogue, completely ignore all input
+        if (samaelDialogueTriggered)
+        {
+            return;
+        }
+        
+        // Only check for input if player is in range and not transitioning
         if (playerInRange && !isTransitioning && Input.GetKeyDown(KeyCode.F))
         {
             // If Samael dialogue is completed, show cemetery message
@@ -131,20 +146,55 @@ public class DormDoorInteraction : MonoBehaviour
     public void LockDoor()
     {
         isLocked = true;
-        Debug.Log("Dorm door locked - cannot exit during sequence");
+        Debug.Log("Dorm door locked");
     }
     
     public void UnlockDoor()
     {
         isLocked = false;
-        Debug.Log("Dorm door unlocked - can exit now");
+        Debug.Log("Dorm door unlocked");
     }
     
-    public void SetSamaelDialogueCompleted()
+    public void DisableDoorCompletely()
     {
+        samaelDialogueTriggered = true;
+        
+        // Disable collider
+        if (doorCollider != null)
+        {
+            doorCollider.enabled = false;
+            Debug.Log("Dorm door collider DISABLED");
+        }
+        
+        // Disable the script's Update by setting a flag
+        // Don't disable the script itself, just prevent it from processing
+        
+        // Hide interaction prompt
+        if (interactionPrompt != null)
+        {
+            interactionPrompt.SetActive(false);
+        }
+        
+        // Force player out of range
+        playerInRange = false;
+        
+        Debug.Log("Dorm door COMPLETELY DISABLED for Samael dialogue");
+    }
+    
+    public void EnableDoorForCemeteryMessage()
+    {
+        samaelDialogueTriggered = false;
         samaelDialogueCompleted = true;
-        isLocked = true; // Keep door locked permanently
-        Debug.Log("Samael dialogue completed - door permanently locked with cemetery message");
+        isLocked = true;
+        
+        // Re-enable collider
+        if (doorCollider != null)
+        {
+            doorCollider.enabled = true;
+            Debug.Log("Dorm door collider ENABLED");
+        }
+        
+        Debug.Log("Door re-enabled - will show cemetery message on interaction");
     }
     
     IEnumerator ShowSequenceLockMessage()
@@ -256,7 +306,7 @@ public class DormDoorInteraction : MonoBehaviour
         Transform targetPosition = insideDormPosition;
         bool shouldTriggerSamael = false;
         
-        if (isSamaelExitDoor && diningRoom != null && diningRoom.IsChairInteractionDone() && !samaelDialogueTriggered)
+        if (isSamaelExitDoor && diningRoom != null && diningRoom.IsChairInteractionDone() && !samaelDialogueTriggered && !samaelDialogueCompleted)
         {
             targetPosition = outsideDormPosition;
             shouldTriggerSamael = true;
@@ -298,16 +348,13 @@ public class DormDoorInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 0f;
         }
         
-        Debug.Log("Fade complete - player teleported");
-        
         // Start Samael dialogue if this is the exit door and chair is done
         if (shouldTriggerSamael && diningRoom != null)
         {
-            samaelDialogueTriggered = true;
             Debug.Log(">>> STARTING SAMAEL DIALOGUE <<<");
             
-            // Lock the door during dialogue
-            LockDoor();
+            // COMPLETELY DISABLE THE DOOR - no interaction possible
+            DisableDoorCompletely();
             
             // Start the dialogue
             diningRoom.StartSamaelDialogue();
@@ -341,9 +388,10 @@ public class DormDoorInteraction : MonoBehaviour
                 blackCanvasGroup.alpha = 0f;
             }
             
-            // Set Samael dialogue as completed - door stays locked permanently
-            SetSamaelDialogueCompleted();
-            Debug.Log("Samael dialogue completed - door permanently locked with cemetery message");
+            // Re-enable door but only to show cemetery message
+            EnableDoorForCemeteryMessage();
+            
+            Debug.Log("Samael dialogue completed - door will show cemetery message on interaction");
         }
         
         isTransitioning = false;
@@ -351,11 +399,12 @@ public class DormDoorInteraction : MonoBehaviour
     
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player") && !isTransitioning)
+        // Only trigger if not during Samael dialogue
+        if (other.CompareTag("Player") && !isTransitioning && !samaelDialogueTriggered)
         {
             playerInRange = true;
             player = other.gameObject;
-            if (interactionPrompt != null)
+            if (interactionPrompt != null && !samaelDialogueCompleted)
             {
                 interactionPrompt.SetActive(true);
                 StartCoroutine(FadeInPrompt());
