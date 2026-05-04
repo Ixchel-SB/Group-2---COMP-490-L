@@ -42,6 +42,11 @@ public class MainMenu : MonoBehaviour
     public void StartNewGame()
     {
         Debug.Log("Start New Game clicked - loading Scenes/StoryTextScene");
+        PlayerPrefs.DeleteKey("HasSavedGame");
+        PlayerPrefs.DeleteKey("PlayerX");
+        PlayerPrefs.DeleteKey("PlayerY");
+        PlayerPrefs.DeleteKey("PlayerZ");
+        PlayerPrefs.Save();
         SceneManager.LoadScene("Scenes/StoryTextScene");
     }
 
