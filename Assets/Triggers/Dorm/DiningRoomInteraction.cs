@@ -188,6 +188,45 @@ public class DiningRoomInteraction : MonoBehaviour
         }
     }
     
+    // Lock all doors for Samael dialogue
+    public void LockAllDoorsForSamael()
+    {
+        Debug.Log("=== LOCKING ALL DOORS FOR SAMAEL DIALOGUE ===");
+        
+        // Lock the DormDoor
+        DormDoorInteraction dormDoorInteraction = FindObjectOfType<DormDoorInteraction>();
+        if (dormDoorInteraction != null)
+        {
+            dormDoorInteraction.LockDoorForSamaelDialogue();
+            Debug.Log("DormDoor locked for Samael dialogue");
+        }
+        
+        // Lock the EntranceDoor
+        if (entranceDoor != null)
+        {
+            if (entranceDoorCollider != null) entranceDoorCollider.enabled = false;
+            if (entranceDoorScript != null) entranceDoorScript.enabled = false;
+            Debug.Log("EntranceDoor locked for Samael dialogue");
+        }
+    }
+    
+    // Unlock doors after Samael dialogue
+    public void UnlockDoorsAfterSamael()
+    {
+        Debug.Log("=== UNLOCKING DOORS AFTER SAMAEL DIALOGUE ===");
+        
+        // Unlock the DormDoor (will show cemetery message)
+        DormDoorInteraction dormDoorInteraction = FindObjectOfType<DormDoorInteraction>();
+        if (dormDoorInteraction != null)
+        {
+            dormDoorInteraction.UnlockDoorAfterSamaelDialogue();
+            Debug.Log("DormDoor unlocked after Samael dialogue - will show cemetery message");
+        }
+        
+        // Entrance door stays locked permanently (don't re-enable)
+        Debug.Log("EntranceDoor remains locked permanently");
+    }
+    
     void Update()
     {
         if (!closetSequenceCompleted && postPhotoSequence != null)
@@ -526,6 +565,14 @@ public class DiningRoomInteraction : MonoBehaviour
         
         if (thinkingText != null) thinkingText.gameObject.SetActive(false);
         
+        // Find and force lock the DormDoor when chair sequence starts
+        DormDoorInteraction dormDoorInteraction = FindObjectOfType<DormDoorInteraction>();
+        if (dormDoorInteraction != null)
+        {
+            dormDoorInteraction.ForceLockDoorByChair();
+            Debug.Log("DormDoor force locked by chair interaction");
+        }
+        
         LockDoors();
         FreezePlayer();
         
@@ -579,6 +626,13 @@ public class DiningRoomInteraction : MonoBehaviour
         UnfreezePlayer();
         isSequenceRunning = false;
         chairInteractionDone = true;
+        
+        // Unlock the DormDoor after chair sequence ends
+        if (dormDoorInteraction != null)
+        {
+            dormDoorInteraction.UnlockDoorAfterChair();
+            Debug.Log("DormDoor unlocked after chair interaction");
+        }
         
         Debug.Log("=== CHAIR SEQUENCE COMPLETED - chairInteractionDone = true ===");
         
