@@ -23,7 +23,7 @@ public class CemeteryInteraction : MonoBehaviour
     public GameObject diningRoomElio;        // Elio_Sitting (dining room)
     public GameObject diningRoomValentina;   // Valentina_Sitting (dining room)
     
-    [Header("Character Models - CEMETERY INITIAL VERSIONS (to enable at start)")]
+    [Header("Character Models - CEMETERY INITIAL VERSIONS (to enable AFTER Samael dialogue)")]
     public GameObject cemeteryInitialMarcelo;    // Marcelo_Male Standing Pose
     public GameObject cemeteryInitialElio;       // Elio_Head Nod
     public GameObject cemeteryInitialValentina;  // Valentina_Sitting Idle (THIS script should be on this object)
@@ -82,11 +82,45 @@ public class CemeteryInteraction : MonoBehaviour
     private bool isSequenceRunning = false;
     private bool waitingForF = false;
     private bool playerInRange = false;
+    private bool isEnabledBySamael = false;  // NEW: Track if Samael dialogue has enabled this
     
     private GameObject player;
     private MonoBehaviour playerController;
     private GameObject promptObject;
     private TextMeshProUGUI promptText;
+    
+    void Awake()
+    {
+        Debug.Log("=== CEMETERY INTERACTION AWAKE on " + gameObject.name + " ===");
+        
+        // FORCE DISABLE all models at the VERY beginning
+        // This GameObject (Valentina_Sitting Idle) should be disabled
+        gameObject.SetActive(false);
+        
+        if (cemeteryInitialMarcelo != null)
+        {
+            cemeteryInitialMarcelo.SetActive(false);
+            Debug.Log("FORCE DISABLED Initial Marcelo in Awake");
+        }
+        
+        if (cemeteryInitialElio != null)
+        {
+            cemeteryInitialElio.SetActive(false);
+            Debug.Log("FORCE DISABLED Initial Elio in Awake");
+        }
+        
+        if (cemeteryFinalMarcelo != null)
+        {
+            cemeteryFinalMarcelo.SetActive(false);
+            Debug.Log("FORCE DISABLED Final Marcelo in Awake");
+        }
+        
+        if (cemeteryFinalValentina != null)
+        {
+            cemeteryFinalValentina.SetActive(false);
+            Debug.Log("FORCE DISABLED Final Valentina in Awake");
+        }
+    }
     
     void Start()
     {
@@ -133,17 +167,22 @@ public class CemeteryInteraction : MonoBehaviour
         // Create interaction prompt above the character
         CreateInteractionPrompt();
         
-        // IMPORTANT: This script is on Valentina_Sitting Idle
-        // We start with the model disabled, but the script needs to be ready
-        // The model will be enabled by EnableInitialCemeteryModels()
+        // Ensure everything is disabled at start
+        gameObject.SetActive(false);
+        if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
+        if (cemeteryInitialElio != null) cemeteryInitialElio.SetActive(false);
+        if (cemeteryFinalMarcelo != null) cemeteryFinalMarcelo.SetActive(false);
+        if (cemeteryFinalValentina != null) cemeteryFinalValentina.SetActive(false);
         
-        Debug.Log("=== CEMETERY INTERACTION READY on " + gameObject.name + " ===");
+        Debug.Log("=== CEMETERY INTERACTION READY on " + gameObject.name + " - ALL MODELS DISABLED ===");
     }
     
-    // Call this method from DiningRoomInteraction to enable initial cemetery models
+    // Call this method from DiningRoomInteraction to enable initial cemetery models (ONLY after Samael dialogue)
     public void EnableInitialCemeteryModels()
     {
-        Debug.Log("=== ENABLING INITIAL CEMETERY MODELS ===");
+        Debug.Log("=== ENABLING INITIAL CEMETERY MODELS (Called from Samael dialogue) ===");
+        
+        isEnabledBySamael = true;
         
         // Enable this GameObject (Valentina_Sitting Idle)
         gameObject.SetActive(true);
@@ -161,15 +200,16 @@ public class CemeteryInteraction : MonoBehaviour
             Debug.Log("Initial Elio enabled");
         }
         
-        // Valentina is THIS object, already enabled above
-        if (cemeteryInitialValentina != null && cemeteryInitialValentina != gameObject)
+        // Ensure final models remain disabled
+        if (cemeteryFinalMarcelo != null)
         {
-            cemeteryInitialValentina.SetActive(true);
-            Debug.Log("Initial Valentina enabled");
+            cemeteryFinalMarcelo.SetActive(false);
         }
         
-        // Make sure the prompt shows when player gets close
-        playerInRange = false;
+        if (cemeteryFinalValentina != null)
+        {
+            cemeteryFinalValentina.SetActive(false);
+        }
     }
     
     void CreateInteractionPrompt()
@@ -207,8 +247,8 @@ public class CemeteryInteraction : MonoBehaviour
             waitingForF = false;
         }
         
-        // Check distance to player - only if this object is active
-        if (player != null && !hasInteracted && !isSequenceRunning && gameObject.activeSelf)
+        // Check distance to player - only if this object is active AND enabled by Samael
+        if (player != null && !hasInteracted && !isSequenceRunning && gameObject.activeSelf && isEnabledBySamael)
         {
             float distance = Vector3.Distance(transform.position, player.transform.position);
             
@@ -352,9 +392,11 @@ public class CemeteryInteraction : MonoBehaviour
         // Remove INITIAL cemetery models
         Debug.Log("Removing INITIAL cemetery character models...");
         
+        // Disable this GameObject (Valentina_Sitting Idle)
+        gameObject.SetActive(false);
+        
         if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
         // Elio stays the same - do not disable
-        if (cemeteryInitialValentina != null) cemeteryInitialValentina.SetActive(false);
         
         // Enable FINAL cemetery models
         Debug.Log("Enabling FINAL cemetery character models...");
