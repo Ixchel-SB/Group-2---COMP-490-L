@@ -1,13 +1,13 @@
 The Vow - Requirements
 
-Repository Reference
+## Repository Reference
 The full project source code and deployment artifacts are available at:  
 https://github.com/Ixchel-SB/Group-2---COMP-490-L
 
-Project Requirement 
+## Project Requirement 
 'The Vow' will be a Unity 3D game submitted through the GitHub repository Group-2---COMP-490-L
 
-Source Code Requirement
+## Source Code Requirement
 This repository includes the project's source files required to open, run, and build the game
 
 The main Unity project files are stored in:
@@ -15,15 +15,15 @@ The main Unity project files are stored in:
 - Packages/
 - ProjectSettings/
 
-Build Instructions Requirement
+## Build Instructions Requirement
 The repository includes the project's build and setup instructions which are stored in:
 - README.md
 
-Configuration Files Requirement
+## Configuration Files Requirement
 The repository includes a configuration example file which is stored in:
 - .env.example
 
-Documentation for Setup, Execution, and Validation
+## Documentation for Setup, Execution, and Validation
 The repository includes documentation explaining how to:
 1. Clone the repository
 2. Open the project in Unity
@@ -31,16 +31,16 @@ The repository includes documentation explaining how to:
 4. Build the game
 5. Validate that the game works correctly
 
-Branching / Versioning Model
+## Branching / Versioning Model
 The repository uses the following branching model:
 - main: stable final version of the project
 
-Functional Requirements
+## Functional Requirements
 - The game launches from the main Unity scene
 - The player is be able to interact with the game environment
 - The game includes core gameplay mechanics implemented through Unity assets and scripts
 
-Non-functional Requiremnets
+## Non-functional Requiremnets
 - The project is stored in a supported Git repository platform
 - The project includes source files required to open the Unity project
 - The project includes setup instructions
