@@ -11,17 +11,17 @@ Source Code Requirement
 This repository includes the project's source files required to open, run, and build the game
 
 The main Unity project files are stored in:
--Assets/
--Packages/
--ProjectSettings/
+- Assets/
+- Packages/
+- ProjectSettings/
 
 Build Instructions Requirement
 The repository includes the project's build and setup instructions which are stored in:
--README.md
+- README.md
 
 Configuration Files Requirement
 The repository includes a configuration example file which is stored in:
--.env.example
+- .env.example
 
 Documentation for Setup, Execution, and Validation
 The repository includes documentation explaining how to:
@@ -36,14 +36,14 @@ The repository uses the following branching model:
 - main: stable final version of the project
 
 Functional Requirements
--The game launches from the main Unity scene
--The player is be able to interact with the game environment
--The game includes core gameplay mechanics implemented through Unity assets and scripts
+- The game launches from the main Unity scene
+- The player is be able to interact with the game environment
+- The game includes core gameplay mechanics implemented through Unity assets and scripts
 
 Non-functional Requiremnets
--The project is stored in a supported Git repository platform
--The project includes source files required to open the Unity project
--The project includes setup instructions
--The project includes execution instructions
--The project includes validation instructions
--The project includes deployment instructions
+- The project is stored in a supported Git repository platform
+- The project includes source files required to open the Unity project
+- The project includes setup instructions
+- The project includes execution instructions
+- The project includes validation instructions
+- The project includes deployment instructions
