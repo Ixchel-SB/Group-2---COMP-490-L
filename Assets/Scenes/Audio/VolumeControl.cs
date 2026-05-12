@@ -57,3 +57,4 @@ public class VolumeControl : MonoBehaviour
         PlayerPrefs.SetFloat("MusicVolume", volume);
     }
 }
+//For some reason the volume slider is not working as it should "need fixing" (ᵕ⸝⸝• ᴗ •)

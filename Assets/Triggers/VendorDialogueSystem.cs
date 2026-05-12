@@ -16,15 +16,15 @@ public class VendorDialogueSystem : MonoBehaviour
         public string[] choiceTexts = new string[4];
     }
     
-    // UI Elements
+    //UI Elements
     public GameObject dialoguePanel;
     public TextMeshProUGUI speakerText;
     public TextMeshProUGUI dialogueText;
     public TextMeshProUGUI continueText;
     
-    // Choice UI Elements
+    //Choice UI Elements
     public GameObject choicesPanel;
-    public Button[] choiceButtons; // Array of 4 buttons
+    public Button[] choiceButtons; //Array of 4 buttons
     public TextMeshProUGUI[] choiceButtonTexts; // Text for each button
     
     public List<DialogueLine> dialogueLines;
@@ -36,7 +36,7 @@ public class VendorDialogueSystem : MonoBehaviour
     public MonoBehaviour playerFollowCamera;
     
     [Header("After Dialogue")]
-    public GameObject objectToActivate; // Item to give to player
+    public GameObject objectToActivate; //Item to give to player
     public string nextSceneName = "";
     public string itemGivenMessage = "You received a map!";
     
@@ -58,11 +58,11 @@ public class VendorDialogueSystem : MonoBehaviour
         if (continueText != null)
             continueText.text = "Press F to continue";
         
-        // Hide choices panel initially
+        //Hide choices panel initially
         if (choicesPanel != null)
             choicesPanel.SetActive(false);
         
-        // Setup choice buttons
+        //Setup choice buttons
         if (choiceButtons != null)
         {
             Debug.Log("Setting up " + choiceButtons.Length + " choice buttons");
@@ -71,7 +71,7 @@ public class VendorDialogueSystem : MonoBehaviour
                 int index = i; // Capture for lambda
                 if (choiceButtons[i] != null)
                 {
-                    // Remove any existing listeners to avoid duplicates
+                    //Remove any existing listeners to avoid duplicates
                     choiceButtons[i].onClick.RemoveAllListeners();
                     choiceButtons[i].onClick.AddListener(() => OnChoiceSelected(index));
                     Debug.Log("Button " + i + " listener added: " + choiceButtons[i].name);
@@ -108,7 +108,7 @@ public class VendorDialogueSystem : MonoBehaviour
             NextLine();
         }
         
-        // NUMBER KEYS FOR CHOICES (1,2,3,4)
+        //NUMBER KEYS FOR CHOICES (1,2,3,4)
         if (waitingForChoice)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1)) OnChoiceSelected(0);
@@ -124,7 +124,7 @@ public class VendorDialogueSystem : MonoBehaviour
         isDialogueActive = true;
         dialoguePanel.SetActive(true);
         
-        // UNLOCK THE CURSOR SO PLAYER CAN CLICK BUTTONS
+        //UNLOCK THE CURSOR SO PLAYER CAN CLICK BUTTONS
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         
@@ -152,7 +152,7 @@ public class VendorDialogueSystem : MonoBehaviour
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         
-        // Hide choices panel when showing regular dialogue
+        //Hide choices panel when showing regular dialogue
         if (choicesPanel != null)
             choicesPanel.SetActive(false);
         
@@ -163,7 +163,7 @@ public class VendorDialogueSystem : MonoBehaviour
         
         if (line.hasChoices)
         {
-            // This line has choices - type it, then show choices
+            //This line has choices - type it, then show choices
             typingCoroutine = StartCoroutine(TypeLineWithChoices(line.line, line.choiceTexts));
         }
         else
@@ -209,11 +209,11 @@ public class VendorDialogueSystem : MonoBehaviour
             choicesPanel.SetActive(true);
             Debug.Log("ChoicesPanel activated");
             
-            // Force cursor visible
+            //Force cursor visible
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             
-            // Force enable all buttons and log their state
+            //Force enable all buttons and log their state
             for (int i = 0; i < choiceButtons.Length; i++)
             {
                 if (choiceButtons[i] != null)
@@ -222,7 +222,7 @@ public class VendorDialogueSystem : MonoBehaviour
                     Debug.Log("Button " + i + " - Name: " + choiceButtons[i].name);
                     Debug.Log("Button " + i + " - Interactable: " + choiceButtons[i].interactable);
                     
-                    // Check if Image component has Raycast Target
+                    //Check if Image component has Raycast Target
                     Image btnImage = choiceButtons[i].GetComponent<Image>();
                     if (btnImage != null)
                     {
@@ -254,11 +254,11 @@ public class VendorDialogueSystem : MonoBehaviour
         Debug.Log("Choice accepted! Processing selection...");
         waitingForChoice = false;
         
-        // Hide choices
+        //Hide choices
         if (choicesPanel != null)
             choicesPanel.SetActive(false);
         
-        // Set selected food based on choice
+        //Set selected food based on choice
         switch (choiceIndex)
         {
             case 0:
@@ -277,15 +277,15 @@ public class VendorDialogueSystem : MonoBehaviour
         
         Debug.Log("Player selected: " + selectedFood);
         
-        // SAVE SELECTED FOOD TO PLAYERPREFS IMMEDIATELY
+        //SAVE SELECTED FOOD TO PLAYERPREFS IMMEDIATELY!!
         PlayerPrefs.SetString("SelectedFood", selectedFood);
         PlayerPrefs.Save();
         Debug.Log("Food saved to PlayerPrefs: " + selectedFood);
         
-        // Move to next line (the response after choice)
+        //Move to next line (the response after choice)
         currentLine++;
         
-        // Insert the selected food into the response line
+        //Insert the selected food into the response line
         if (currentLine < dialogueLines.Count)
         {
             string responseLine = dialogueLines[currentLine].line;
@@ -324,7 +324,7 @@ public class VendorDialogueSystem : MonoBehaviour
         if (playerFollowCamera != null)
             playerFollowCamera.enabled = true;
         
-        // LOCK THE CURSOR AGAIN WHEN DIALOGUE ENDS
+        //LOCK THE CURSOR AGAIN WHEN DIALOGUE ENDS!!~
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         
@@ -335,18 +335,18 @@ public class VendorDialogueSystem : MonoBehaviour
             Debug.Log("Camera restored to player");
         }
         
-        // NOTIFY GAME PROGRESS MANAGER THAT VENDOR DIALOGUE IS COMPLETE
+        //NOTIFY GAME PROGRESS MANAGER THAT VENDOR DIALOGUE IS COMPLETE
         if (GameProgressManager.Instance != null)
         {
             GameProgressManager.Instance.CompleteVendorDialogue(selectedFood);
             Debug.Log("Vendor dialogue completed - notified GameProgressManager");
         }
         
-        // Show what the player chose
+        //Show what the player chose
         string message = "You chose the " + selectedFood + "! Enjoy!";
         StartCoroutine(ShowMessage(message));
         
-        // Add to inventory
+        //Add to inventory
         AddToInventory(selectedFood);
         
         if (objectToActivate != null)
@@ -365,10 +365,10 @@ public class VendorDialogueSystem : MonoBehaviour
     void AddToInventory(string food)
     {
         Debug.Log("Adding to inventory: " + food);
-        // TODO: Add your inventory system logic here
-        // Example: InventoryManager.Instance.AddItem(food);
+        //TODO: Add your inventory system logic here
+        //Example: InventoryManager.Instance.AddItem(food);
         
-        // Show confirmation in console
+        //Show confirmation in console
         Debug.Log("Inventory updated with: " + food);
     }
     

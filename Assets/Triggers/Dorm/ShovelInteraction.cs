@@ -9,6 +9,7 @@ public class ShovelInteraction : MonoBehaviour
     public float fadeDuration = 0.5f;
     public float blackScreenHoldTime = 10f;
     public string pickupMessage = "It looks like something else was buried here";
+    public DoorBlockMessage blockMessage;
     
     private bool playerInRange = false;
     private bool hasPickedUp = false;
@@ -28,6 +29,10 @@ public class ShovelInteraction : MonoBehaviour
             promptCanvasGroup.alpha = 0f;
             interactionPrompt.SetActive(false);
         }
+        else
+        {
+            Debug.LogWarning("InteractionPrompt not assigned on Shovel!");
+        }
         
         if (blackScreenPanel != null)
         {
@@ -36,10 +41,19 @@ public class ShovelInteraction : MonoBehaviour
                 blackCanvasGroup = blackScreenPanel.AddComponent<CanvasGroup>();
             blackCanvasGroup.alpha = 0f;
         }
+        else
+        {
+            Debug.LogWarning("BlackScreenPanel not assigned on Shovel!");
+        }
         
         if (dormManager == null)
         {
             Debug.LogError("DormManager not assigned on Shovel!");
+        }
+        
+        if (blockMessage == null)
+        {
+            Debug.LogWarning("BlockMessage not assigned on Shovel!");
         }
     }
     
@@ -59,7 +73,14 @@ public class ShovelInteraction : MonoBehaviour
         if (interactionPrompt != null)
             interactionPrompt.SetActive(false);
         
-        // Fade to black
+        //Show the pickup message
+        if (blockMessage != null)
+        {
+            blockMessage.ShowMessage(pickupMessage);
+            yield return new WaitForSeconds(2f);
+        }
+        
+        //Fade to black
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -73,16 +94,10 @@ public class ShovelInteraction : MonoBehaviour
             Debug.Log("Faded to black");
         }
         
-        // Show message on black screen (text appears at same time as black screen)
-        if (dormManager != null)
-        {
-            dormManager.ShowThinkingTextOnBlackScreen(pickupMessage);
-        }
-        
-        // Wait 10 seconds on black screen with text
+        //Hold black screen for 10 seconds (SHOULD CHANGE TIME IDK)
         yield return new WaitForSecondsRealtime(blackScreenHoldTime);
         
-        // Fade back to normal
+        //Fade back to normal!
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -93,13 +108,13 @@ public class ShovelInteraction : MonoBehaviour
                 yield return null;
             }
             blackCanvasGroup.alpha = 0f;
-            Debug.Log("Faded back to normal - black screen cleared");
+            Debug.Log("Faded back to normal");
         }
         
-        // Small delay to ensure screen is fully normal
+        //Small delay to ensure screen is fully normal
         yield return new WaitForSecondsRealtime(0.5f);
         
-        // Show photo for inspection on NORMAL screen
+        //Show photo for inspection
         if (dormManager != null)
         {
             Debug.Log("Calling dormManager.ShowPhotoForInspection()");

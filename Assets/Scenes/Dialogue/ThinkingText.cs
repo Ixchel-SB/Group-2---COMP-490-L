@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
-
+//THINKING TEXT: This is text that show on screen not like dialogue shows on screen without the name its like in players head
 public class ThinkingText : MonoBehaviour
 {
     public TextMeshProUGUI thinkingText;
@@ -24,7 +24,7 @@ public class ThinkingText : MonoBehaviour
     {
         thinkingText.text = message;
         
-        // Fade in
+        //Fade in
         float alpha = 0;
         while (alpha < 1)
         {
@@ -33,10 +33,10 @@ public class ThinkingText : MonoBehaviour
             yield return null;
         }
         
-        // Hold
+        //Hold
         yield return new WaitForSeconds(displayDuration);
         
-        // Fade out
+        //Fade out
         while (alpha > 0)
         {
             alpha -= Time.deltaTime * fadeSpeed;

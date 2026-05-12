@@ -3,7 +3,7 @@ using UnityEngine;
 public class MapViewer : MonoBehaviour
 {
     [Header("Map Settings")]
-    public Texture2D oldMapTexture; // Drag your Old Map texture here
+    public Texture2D oldMapTexture; //Drag your Old Map texture here or 3D model idk (still chosing)
     public Transform playerHead;
     public float distanceInFront = 2f;
     public float mapWidth = 2f;
@@ -17,19 +17,19 @@ public class MapViewer : MonoBehaviour
     private Vector3 originalCameraPos;
     private Quaternion originalCameraRot;
     private GameObject playerModel;
-    private PauseManager3D pauseManager; // Reference to pause manager
+    private PauseManager3D pauseManager; //Reference to pause manager
 
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player");
         mainCamera = Camera.main;
         
-        // Find PauseManager
+        //Find PauseManager
         pauseManager = FindObjectOfType<PauseManager3D>();
         
         if (player != null)
         {
-            // Find player controller
+            //Find player controller
             playerController = player.GetComponent<MonoBehaviour>();
             if (playerController == null)
             {
@@ -38,7 +38,7 @@ public class MapViewer : MonoBehaviour
                     playerController = playerArmature.GetComponent<MonoBehaviour>();
             }
             
-            // Find player model to hide
+            //Find player model to hide
             SkinnedMeshRenderer skinnedMesh = player.GetComponentInChildren<SkinnedMeshRenderer>();
             if (skinnedMesh != null)
                 playerModel = skinnedMesh.gameObject;
@@ -51,17 +51,17 @@ public class MapViewer : MonoBehaviour
     
     void Update()
     {
-        // Check if game is paused before allowing map to open
+        //Check if game is paused before allowing map to open! Do not want to have both clashing
         bool isGamePaused = false;
         if (pauseManager != null)
         {
             isGamePaused = pauseManager.IsGamePaused();
         }
         
-        // Only allow map to open if:
-        // 1. Player has the map
-        // 2. Game is NOT paused
-        // 3. Map is not already open (or we're closing it)
+        //Only allow map to open if:
+        //1. Player has the map
+        //2. Game is NOT paused
+        //3. Map is not already open (or we're closing it)
         if (GameProgressManager.Instance != null && GameProgressManager.Instance.HasMap() && !isGamePaused)
         {
             if (Input.GetKeyDown(KeyCode.M))
@@ -73,14 +73,14 @@ public class MapViewer : MonoBehaviour
             }
         }
         
-        // Also handle closing map if game gets paused while map is open
+        //Also handle closing map if game gets paused while map is open
         if (isMapOpen && isGamePaused)
         {
             CloseMap();
         }
     }
     
-    // Public method for PauseManager to check if map is open
+    //Public method for PauseManager to check if map is open
     public bool IsMapOpen()
     {
         return isMapOpen;
@@ -91,53 +91,53 @@ public class MapViewer : MonoBehaviour
         Debug.Log("OpenMap called");
         isMapOpen = true;
         
-        // FREEZE PLAYER
+        //FREEZE PLAYER
         if (playerController != null)
         {
             playerController.enabled = false;
             Debug.Log("Player controller disabled");
         }
         
-        // HIDE PLAYER MODEL
+        //HIDE PLAYER MODEL
         if (playerModel != null)
         {
             playerModel.SetActive(false);
             Debug.Log("Player model hidden");
         }
         
-        // Store camera position
+        //Store camera position
         if (mainCamera != null)
         {
             originalCameraPos = mainCamera.transform.position;
             originalCameraRot = mainCamera.transform.rotation;
         }
         
-        // Create a flat plane with the Old Map texture
+        //Create a flat plane with the Old Map texture
         if (oldMapTexture != null && playerHead != null)
         {
-            // Create a new GameObject for the map
+            //Create a new GameObject for the map (Do not have change to keep first map and include location of player)
             currentMapInstance = new GameObject("OldMap");
             
-            // Add a Quad (flat plane) mesh
+            //Add a Quad (flat plane) mesh
             MeshFilter meshFilter = currentMapInstance.AddComponent<MeshFilter>();
             meshFilter.mesh = CreateQuadMesh();
             
-            // Add a MeshRenderer
+            //Add a MeshRenderer
             MeshRenderer renderer = currentMapInstance.AddComponent<MeshRenderer>();
             
-            // Create a material with your texture
+            //Create a material with your texture
             Material mapMaterial = new Material(Shader.Find("Unlit/Texture"));
             mapMaterial.mainTexture = oldMapTexture;
             renderer.material = mapMaterial;
             
-            // Position in front of player
+            //Position in front of player
             Vector3 mapPosition = playerHead.position + playerHead.forward * distanceInFront;
             currentMapInstance.transform.position = mapPosition;
             
-            // Scale the quad to desired size
+            //Scale the quad to desired size
             currentMapInstance.transform.localScale = new Vector3(mapWidth, mapHeight, 1);
             
-            // Face the player
+            //Face the player
             currentMapInstance.transform.LookAt(playerHead);
             currentMapInstance.transform.Rotate(0, 180f, 0);
             
@@ -157,21 +157,21 @@ public class MapViewer : MonoBehaviour
         Debug.Log("CloseMap called");
         isMapOpen = false;
         
-        // UNFREEZE PLAYER
+        //UNFREEZE PLAYER!
         if (playerController != null)
         {
             playerController.enabled = true;
             Debug.Log("Player controller enabled");
         }
         
-        // SHOW PLAYER MODEL
+        //SHOW PLAYER MODEL ( ꈍ◡ꈍ)
         if (playerModel != null)
         {
             playerModel.SetActive(true);
             Debug.Log("Player model shown");
         }
         
-        // Restore camera position
+        //Restore camera position
         if (mainCamera != null)
         {
             mainCamera.transform.position = originalCameraPos;
@@ -179,7 +179,7 @@ public class MapViewer : MonoBehaviour
             Debug.Log("Camera restored");
         }
         
-        // Destroy map instance
+        //Destroy map instance
         if (currentMapInstance != null)
         {
             Destroy(currentMapInstance);
@@ -190,7 +190,7 @@ public class MapViewer : MonoBehaviour
         Cursor.visible = false;
     }
     
-    // Helper method to create a simple quad mesh
+    //Helper method~
     Mesh CreateQuadMesh()
     {
         Mesh mesh = new Mesh();

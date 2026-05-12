@@ -18,10 +18,10 @@ public class NPCInteraction : MonoBehaviour
     
     void Update()
     {
-        // Only allow starting dialogue if:
-        // - Player in range
-        // - Not already in dialogue
-        // - Has NOT interacted before (one-time only)
+        //Only allow starting dialogue if:
+        //Player in range
+        //Not already in dialogue
+        //Has NOT interacted before (one-time only) ˙ᵕ˙
         if (playerInRange && !dialogueActive && !hasInteracted && Input.GetKeyDown(KeyCode.F))
         {
             Interact();
@@ -43,18 +43,18 @@ public class NPCInteraction : MonoBehaviour
             interactionPrompt.SetActive(false);
     }
     
-    // This will be called by DialogueSystem when dialogue ends
+    //(つ╥﹏╥)つ This will be called by DialogueSystem when dialogue ends~
     public void OnDialogueEnd()
     {
         Debug.Log("NPC: Dialogue ended callback received - permanently disabled");
         dialogueActive = false;
         
-        // Permanently hide prompt
+        //Permanently hide prompt
         if (interactionPrompt != null)
             interactionPrompt.SetActive(false);
         
-        // Optional: Disable the collider so player can't even trigger
-        // GetComponent<Collider>().enabled = false;
+        //Optional: Disable the collider so player can't even trigger
+        //GetComponent<Collider>().enabled = false;
     }
     
     void OnTriggerEnter(Collider other)
@@ -62,7 +62,7 @@ public class NPCInteraction : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = true;
-            // Only show prompt if not in dialogue and hasn't interacted yet
+            //Only show prompt if not in dialogue and hasn't interacted yet
             if (!dialogueActive && !hasInteracted && interactionPrompt != null)
                 interactionPrompt.SetActive(true);
         }

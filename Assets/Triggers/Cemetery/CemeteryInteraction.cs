@@ -93,8 +93,8 @@ public class CemeteryInteraction : MonoBehaviour
     {
         Debug.Log("=== CEMETERY INTERACTION AWAKE on " + gameObject.name + " ===");
         
-        // FORCE DISABLE all models at the VERY beginning
-        // This GameObject (Valentina_Sitting Idle) should be disabled
+        //FORCE DISABLE all models at the VERY beginning
+        //This GameObject (Valentina_Sitting Idle) should be disabled
         gameObject.SetActive(false);
         
         if (cemeteryInitialMarcelo != null)
@@ -126,7 +126,7 @@ public class CemeteryInteraction : MonoBehaviour
     {
         Debug.Log("=== CEMETERY INTERACTION START on " + gameObject.name + " ===");
         
-        // Find player
+        //Find player (T____T)
         player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
@@ -139,7 +139,7 @@ public class CemeteryInteraction : MonoBehaviour
             }
         }
         
-        // Setup thinking text
+        //Setup thinking text
         if (thinkingText != null)
         {
             thinkingCanvasGroup = thinkingText.GetComponent<CanvasGroup>();
@@ -149,13 +149,13 @@ public class CemeteryInteraction : MonoBehaviour
             thinkingText.gameObject.SetActive(false);
         }
         
-        // Setup dialogue UI
+        //Setup dialogue UI
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
         if (continueText != null)
             continueText.text = "Press F to continue";
         
-        // Setup black screen
+        //Setup black screen
         if (blackScreenPanel != null)
         {
             blackCanvasGroup = blackScreenPanel.GetComponent<CanvasGroup>();
@@ -164,10 +164,10 @@ public class CemeteryInteraction : MonoBehaviour
             blackCanvasGroup.alpha = 0f;
         }
         
-        // Create interaction prompt above the character
+        //Create interaction prompt above the character
         CreateInteractionPrompt();
         
-        // Ensure everything is disabled at start
+        //Ensure everything is disabled at start
         gameObject.SetActive(false);
         if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
         if (cemeteryInitialElio != null) cemeteryInitialElio.SetActive(false);
@@ -184,7 +184,7 @@ public class CemeteryInteraction : MonoBehaviour
         
         isEnabledBySamael = true;
         
-        // Enable this GameObject (Valentina_Sitting Idle)
+        //Enable this GameObject (Valentina_Sitting Idle)
         gameObject.SetActive(true);
         Debug.Log("Enabled " + gameObject.name);
         
@@ -200,7 +200,7 @@ public class CemeteryInteraction : MonoBehaviour
             Debug.Log("Initial Elio enabled");
         }
         
-        // Ensure final models remain disabled
+        //Ensure final models remain disabled
         if (cemeteryFinalMarcelo != null)
         {
             cemeteryFinalMarcelo.SetActive(false);
@@ -224,13 +224,13 @@ public class CemeteryInteraction : MonoBehaviour
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
         
-        // Add a background
+        //Add a background
         GameObject background = new GameObject("Background");
         background.transform.SetParent(promptObject.transform);
         UnityEngine.UI.Image image = background.AddComponent<UnityEngine.UI.Image>();
         image.color = new Color(0, 0, 0, 0.7f);
         
-        // Set background to cover the text
+        //Set background to cover the text
         RectTransform bgRect = background.GetComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero;
         bgRect.anchorMax = Vector2.one;
@@ -247,7 +247,7 @@ public class CemeteryInteraction : MonoBehaviour
             waitingForF = false;
         }
         
-        // Check distance to player - only if this object is active AND enabled by Samael
+        //Check distance to player - only if this object is active AND enabled by Samael
         if (player != null && !hasInteracted && !isSequenceRunning && gameObject.activeSelf && isEnabledBySamael)
         {
             float distance = Vector3.Distance(transform.position, player.transform.position);
@@ -360,22 +360,22 @@ public class CemeteryInteraction : MonoBehaviour
         hasInteracted = true;
         isSequenceRunning = true;
         
-        // Hide prompt
+        //Hide prompt
         if (promptObject != null)
             promptObject.SetActive(false);
         
         FreezePlayer();
         
-        // Show cemetery thinking text
+        //Show cemetery thinking text
         yield return StartCoroutine(ShowThinkingText(cemeteryThinkingText, cemeteryThinkingDuration));
         
-        // Run all dialogue lines in order
+        //Run all dialogue lines in order
         for (int i = 0; i < dialogueLines.Length; i++)
         {
             yield return StartCoroutine(ShowDialogue(dialogueLines[i], speakers[i]));
         }
         
-        // Fade to black for final model swap
+        //Fade to black for final model swap
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -389,22 +389,22 @@ public class CemeteryInteraction : MonoBehaviour
             Debug.Log("Faded to black for final model swap");
         }
         
-        // Remove INITIAL cemetery models
+        //Remove INITIAL cemetery models
         Debug.Log("Removing INITIAL cemetery character models...");
         
-        // Disable this GameObject (Valentina_Sitting Idle)
+        //Disable this GameObject (Valentina_Sitting Idle)
         gameObject.SetActive(false);
         
         if (cemeteryInitialMarcelo != null) cemeteryInitialMarcelo.SetActive(false);
-        // Elio stays the same - do not disable
+        //Elio stays the same - do not disable
         
-        // Enable FINAL cemetery models
+        //Enable FINAL cemetery models
         Debug.Log("Enabling FINAL cemetery character models...");
         
         if (cemeteryFinalMarcelo != null) cemeteryFinalMarcelo.SetActive(true);
         if (cemeteryFinalValentina != null) cemeteryFinalValentina.SetActive(true);
         
-        // Fade back
+        //Fade back
         if (blackCanvasGroup != null)
         {
             float elapsed = 0f;
@@ -418,13 +418,13 @@ public class CemeteryInteraction : MonoBehaviour
             Debug.Log("Faded back");
         }
         
-        // Show final thinking text
+        //Show final thinking text!
         yield return StartCoroutine(ShowThinkingText(finalThinkingText, finalThinkingDuration));
         
         UnfreezePlayer();
         isSequenceRunning = false;
         
-        // Disable this script so player can't interact again
+        //Disable this script so player can't interact again
         this.enabled = false;
         
         Debug.Log("=== CEMETERY SEQUENCE COMPLETED ===");
