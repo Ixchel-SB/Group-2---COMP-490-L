@@ -1,6 +1,6 @@
-API Documentation: PickupItem
+## API Documentation: PickupItem
 
-Name and Short Description:
+# Name and Short Description:
 PickupItem is a MonoBehaviour component on an item that collects the item from the world when the player tagged “Player” collides with its trigger collider. When this is triggered, the item is moved from the world to the player’s ItemPickupHandler. 
 
 Signature:
